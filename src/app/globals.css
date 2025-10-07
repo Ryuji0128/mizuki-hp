@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #ffffff;
+    --foreground: #171717;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* reCaptcha非表示 */
+/* バッジの表示による動作確認の際は要コメントアウト */
+.grecaptcha-badge { visibility: hidden; }
+
+/* 以下reCaptchaバッジを左に移動するためのスタイル設定（必要があれば） */
+
+/* .grecaptcha-badge {
+  width: 70px !important;
+  overflow: hidden !important;
+  transition: all 0.3s ease !important;
+  left: 0px !important;
+  bottom: 0px !important;
+}
+
+.grecaptcha-badge:hover {
+  width: 256px !important;
+} */
+
+@font-face {
+  font-family: 'Yuji Syuku';
+  src: url('./fonts/YujiSyuku-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap; /* フォントの読み込みが完了するまで代替フォントを表示 */
+}
