@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Typography, Box, useMediaQuery } from "@mui/material";
-import { motion } from "framer-motion";
-import { useTheme } from "@mui/material";
 import { useSimpleBar } from "@/components/SimpleBarWrapper";
+import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { motion } from "framer-motion";
+import React, { useEffect, useState } from "react";
 
 // ランダムな値を生成する関数
 const getRandomValue = (min: number, max: number): number =>
@@ -41,14 +40,14 @@ const lerp = (start: number, end: number, t: number): number =>
 
 
 const HeroTopSection: React.FC = () => {
-    const theme = useTheme();
-    const { scrollContainerRef } = useSimpleBar();
+  const theme = useTheme();
+  const { scrollContainerRef } = useSimpleBar();
 
-    const [scrollY, setScrollY] = useState(0);
+  const [scrollY, setScrollY] = useState(0);
 
   const isMobile = useMediaQuery(`(max-width:${theme.breakpoints.values.sm}px)`);
   const isTablet = useMediaQuery(`(max-width:${theme.breakpoints.values.md}px)`);
-  const appBarHeight = isMobile ? theme.custom.header.height.mobile : theme.custom.header.height.desktop ; // モバイル: 56px, デスクトップ: 64px
+  const appBarHeight = isMobile ? theme.custom.header.height.mobile : theme.custom.header.height.desktop; // モバイル: 56px, デスクトップ: 64px
 
   const fontSize = isMobile ? "3rem" : isTablet ? "6rem" : "8rem";
   const justifyContent = isMobile || isTablet ? "center" : "flex-start";
@@ -75,18 +74,18 @@ const HeroTopSection: React.FC = () => {
     return () => scrollContainer.removeEventListener("scroll", handleScroll);
   }, [scrollContainerRef]);
 
-    // スクロール位置に基づいて色を補間
-const calculateColor = (scrollY: number) => {
-  const startColor = hexToRgb(theme.palette.primary.light); 
-  const targetColor = hexToRgb(theme.palette.primary.main); 
+  // スクロール位置に基づいて色を補間
+  const calculateColor = (scrollY: number) => {
+    const startColor = hexToRgb(theme.palette.primary.light);
+    const targetColor = hexToRgb(theme.palette.primary.main);
 
-  const t = Math.min(scrollY / 300, 1); // 0から1の範囲で補間
-  const r = Math.round(lerp(startColor.r, targetColor.r, t));
-  const g = Math.round(lerp(startColor.g, targetColor.g, t));
-  const b = Math.round(lerp(startColor.b, targetColor.b, t));
+    const t = Math.min(scrollY / 300, 1); // 0から1の範囲で補間
+    const r = Math.round(lerp(startColor.r, targetColor.r, t));
+    const g = Math.round(lerp(startColor.g, targetColor.g, t));
+    const b = Math.round(lerp(startColor.b, targetColor.b, t));
 
-  return `rgb(${r}, ${g}, ${b})`;
-};  
+    return `rgb(${r}, ${g}, ${b})`;
+  };
 
   return (
     <Box
@@ -114,10 +113,10 @@ const calculateColor = (scrollY: number) => {
         }}
       >
         <Typography variant="h1" sx={{ fontSize, fontWeight: "bold", textAlign: "left" }}>
-          Fusetsu
+          瀬田
         </Typography>
         <Typography variant="h1" sx={{ fontSize, fontWeight: "bold", textAlign: "left" }}>
-          Corporation
+          製作所
         </Typography>
       </motion.div>
 
@@ -137,7 +136,7 @@ const calculateColor = (scrollY: number) => {
             textAlign: "left",
           }}
         >
-          Fusetsu
+          瀬田
         </Typography>
         <Typography
           variant="h1"
@@ -148,24 +147,24 @@ const calculateColor = (scrollY: number) => {
             textAlign: "left",
           }}
         >
-          Corporation
+          製作所
         </Typography>
       </motion.div>
 
-      {/* ランダムな三角形 */}
-      {triangles.map((triangle, index) => (
+      {/* ランダムな丸 */}
+      {triangles.map((circle, index) => (
         <Box
           key={index}
           sx={{
             position: "absolute",
-            bottom: triangle.bottom,
-            right: triangle.right,
-            width: `${triangle.size}px`,
-            height: `${triangle.size}px`,
+            bottom: circle.bottom,
+            right: circle.right,
+            width: `${circle.size}px`,
+            height: `${circle.size}px`,
             backgroundColor: calculateColor(scrollY), // 色の補間
-            clipPath: "polygon(0 0, 100% 50%, 0 100%)", // 三角形
-            transform: `rotate(${triangle.rotation}deg)`,
-            opacity: triangle.opacity,
+            borderRadius: "50%", // ← 丸くする
+            transform: `rotate(${circle.rotation}deg)`,
+            opacity: circle.opacity,
             zIndex: 0,
           }}
         ></Box>

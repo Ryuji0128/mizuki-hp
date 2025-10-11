@@ -1,10 +1,10 @@
-import { validateInquiry } from "@/lib/validation";
-import { NextResponse, NextRequest } from "next/server";
-import axios from "axios";
-import xss from "xss";
-import { getMsalAccessToken } from "@/lib/msal";
-import { fetchSecret } from "@/lib/fetchSecrets";
 import { getPrismaClient } from "@/lib/db";
+import { fetchSecret } from "@/lib/fetchSecrets";
+import { getMsalAccessToken } from "@/lib/msal";
+import { validateInquiry } from "@/lib/validation";
+import axios from "axios";
+import { NextRequest, NextResponse } from "next/server";
+import xss from "xss";
 
 export async function GET() {
   try {
@@ -48,31 +48,30 @@ export async function POST(req: NextRequest) {
     // A 顧客宛のメールコンテンツを定義
     const customerEmailContent = {
       message: {
-        subject: "【風雪株式会社】お問い合わせをお受けしました",
+        subject: "【瀬田製作所】お問い合わせをお受けしました",
         body: {
           contentType: "HTML",
           content: `
             <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; line-height: 1.6;">
-              ${
-                sanitizedData.company
-                  ? `<p style="width: 100%;"><strong>${sanitizedData.company}</strong></p>`
-                  : ""
-              }
+              ${sanitizedData.company
+              ? `<p style="width: 100%;"><strong>${sanitizedData.company}</strong></p>`
+              : ""
+            }
               <div style="margin-left: 10px; width: 100%;">
                 <p>
                   ${sanitizedData.name} 様
                 </p>
                 <p>
-                  この度は、風雪株式会社へお問い合わせいただき、誠にありがとうございます。<br>
+                  この度は、瀬田製作所へお問い合わせいただき、誠にありがとうございます。<br>
                   弊社担当にて、お送りいただきました内容を確認の上、追ってご連絡いたします。
                 </p>
                 <p>今後とも、弊社をよろしくお願いいたします。</p>
               </div>
               <div style="border: 1px solid #ccc; padding: 10px; background-color: #f9f9f9; display: flex; flex-wrap: wrap; justify-content: center; align-items: center;">
                 <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; margin: 20px;">
-                  <img src="https://fusetsu.co.jp/fusetsu_logo_transparent.png" alt="風雪株式会社ロゴ" 
+                  <img src="https://fusetsu.co.jp/seta_logo_transparent.png" alt="瀬田製作所ロゴ" 
                       style="width: 50px; height: auto; margin-right: 10px;">
-                  <span style="font-weight: bold; text-align: center;">風雪株式会社</span>
+                  <span style="font-weight: bold; text-align: center;">瀬田製作所</span>
                 </div>
                 <p style="margin:20px; text-align: center;">
                   〒521-0312　滋賀県米原市上野 709<br>

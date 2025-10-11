@@ -47,18 +47,17 @@ declare module "@mui/material/styles" {
 export const themeConstants = {
   palette: {
     primary: {
-      pale: "#E5F0FF",
-      light: "#A8C9F5",
-      main: "#2F80ED",
-      dark: "#034092",
-      contrastText: "#FFFFFF",
+      pale: "#F7F7F7",
+      light: "#EDEDED",
+      main: "#3E3747",       // ← 白に近いグレー（全体の基調色）
+      dark: "#BDBDBD",
+      contrastText: "#FFFFFF", // 文字はやや濃いグレー
     },
     secondary: {
-      pale: "#CDEBD3",
-      light: "#61D5A8",
-      main: "#14A37D",
-      dark: "#0B5155",
-      contrastText: "#FFFFFF",
+      pale: "#FAFAFA",
+      light: "#EAEAEA",
+      main: "#CFCFCF",
+      dark: "#9E9E9E",
     },
     info: {
       pale: "#FFFFFF",
@@ -79,11 +78,14 @@ export const themeConstants = {
       dark: "#A81A1A",
     },
     background: {
-      default: "#FFFFFF",
-      paper: "#FAFAFA",
+      default: "#F5F5F5",  // ← 全体の背景：淡いグレー
+      paper: "#FFFFFF",    // ← カードやBoxは白
       dark: "#000000",
+
     },
   },
+
+
   typography: {
     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
     h1: {

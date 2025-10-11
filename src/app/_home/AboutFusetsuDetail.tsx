@@ -1,7 +1,6 @@
 import BaseContainer from "@/components/BaseContainer";
 import { Box, Divider, Typography } from "@mui/material";
 import { motion } from "framer-motion";
-import Image from "next/image";
 
 const AboutFusetsuDetail = () => {
   const imageWidth = 30;
@@ -27,14 +26,14 @@ const AboutFusetsuDetail = () => {
             display: { xs: "none", md: "flex" }, // モバイルとタブレットは非表示
           }}
         >
-          <Image
+          {/* <Image
             src="/arrow_vector_image.svg"
-            alt="風雪株式会社ロゴ"
+            alt="瀬田製作所ロゴ"
             width={100} // 任意のダミー値
             height={100} // 任意のダミー値
             style={{ width: "100%", height: "auto" }} // パーセントの設定、画像の幅と高さをレスポンシブに調整
             sizes="100vw"
-          />
+          /> */}
         </Box>
 
         {/* 右側コンポーネント（枠線とアニメーション） */}
@@ -79,20 +78,17 @@ const AboutFusetsuDetail = () => {
                 textAlign: "center",
               }}
             >
-              想像する未来を実現するために。
+              好奇心が、次のモノを生み出す。
             </Typography>
           </Box>
           {/* 説明文 */}
           <Box
             sx={{ paddingTop: "4rem", lineHeight: 1.8, fontSize: "0.95rem" }}
           >
-            <p>風雪株式会社は、ITエンジニア集団として数々の挑戦と困難を乗り越え、</p>
-            <p>磨き上げてきた技術とスキルを持って、ソリューションを提供しています。</p>
-            <p>私たちは「未来を創造し、人と社会を豊かにする」ことを使命に、</p>
-            <p>技術革新や知識の共有、コミュニティの活性化を通じて、</p>
-            <p>人々の可能性を広げる環境を提供し、より良い社会の構築を目指しています。</p>
-            <p>お客様の想いやビジョンを深く理解し、それに応えるための最適なソリューションを提供します。 </p>
-            <p>企業の成長を支え、すべての関係者がともに発展できる環境を築いていきます。</p>
+            <p>瀬田製作所は、社長をはじめ“作りたい気持ち”を大切にしています。</p>
+            <p>「これが面白い」「これがあったら嬉しい」——そんな想いから生まれた製品が、</p>
+            <p>結果的に多くの人に喜んでもらえる。</p>
+            <p>私たちは、そんな自由で楽しいものづくりを続けています。</p>
           </Box>
 
           {/* リンクボタン */}

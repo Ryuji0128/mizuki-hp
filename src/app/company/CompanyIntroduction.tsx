@@ -1,15 +1,13 @@
-import React from "react";
+import ContentsOfPresidentMessage from "@/app/company/ContentsOfPresidentMessage";
 import ResponsiveAdjustmentContainer from "@/components/ResponsiveAdjustmentContainer";
 import { themeConstants } from "@/theme/themeConstants";
-import ContentsOfPresidentMessage from "@/app/company/ContentsOfPresidentMessage";
-import ContentsOfCompanyOutline from "@/app/company/ContentsOfCompanyOutline";
-import ContentsOfCompanyHistory from "@/app/company/ContentsOfCompanyHistory";
+import React from "react";
 
 const BusinessIntroduction: React.FC = () => {
   const titlesOfPresidentMessageService = ["代表メッセージ"];
   const titlesOfCompanyOutline = ["会社概要"];
   const titlesOfCompanyHistory = ["沿革"];
-  
+
   const titlesWidth = {
     xs: themeConstants.custom.subTitle.widthXs,
     sm: themeConstants.custom.subTitle.widthSm,
@@ -33,20 +31,20 @@ const BusinessIntroduction: React.FC = () => {
         // imageTitle=""
         rightComponent={<ContentsOfPresidentMessage />}
       />
-      {/* 会社概要 */}  
-      <ResponsiveAdjustmentContainer
+      {/* 会社概要 */}
+      {/* <ResponsiveAdjustmentContainer
         titlesWidth={titlesWidth}
         contentWidth={contentWidth}
         titles={titlesOfCompanyOutline}
         rightComponent={<ContentsOfCompanyOutline />}
-      />
+      /> */}
       {/* 沿革 */}
-      <ResponsiveAdjustmentContainer
+      {/* <ResponsiveAdjustmentContainer
         titlesWidth={titlesWidth}
         contentWidth={contentWidth}
         titles={titlesOfCompanyHistory}
         rightComponent={<ContentsOfCompanyHistory />}
-      />
+      /> */}
     </>
   );
 };

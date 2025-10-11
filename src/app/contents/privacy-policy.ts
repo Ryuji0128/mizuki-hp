@@ -15,7 +15,7 @@ export interface ISection {
 
 // 全データの型
 export interface IPrivacyPolicyData {
-    data: ISection[];
+  data: ISection[];
 }
 
 export const data: ISection[] = [
@@ -94,12 +94,12 @@ export const data: ISection[] = [
     listItems: ["本ポリシーの内容は，法令その他本ポリシーに別段の定めのある事項を除いて，ユーザーに通知することなく，変更することができるものとします。", "当社が別途定める場合を除いて，変更後のプライバシーポリシーは，本ウェブサイトに掲載したときから効力を生じるものとします。"],
   },
   {
-    title: "第お問い合わせ窓口",
+    title: "お問い合わせ窓口",
     description: "本ポリシーに関するお問い合わせは，下記の窓口までお願いいたします。",
     listItems: [
       {
         type: "paragraph",
-        content: ["住所： 〒521-0312 滋賀県米原市上野709", "社名： 風雪株式会社", "代表取締役： 髙橋 浩規", "担当部署： 髙橋 浩規", "Eメールアドレス： t_hiroki@fusetsu.co.jp"],
+        content: ["住所： 〒521-0312 滋賀県米原市上野709", "社名： 瀬田製作所", "代表取締役： 木村 竜次", "担当部署： 木村 竜次", "Eメールアドレス： t_hiroki@fusetsu.co.jp"],
       },
     ],
   },

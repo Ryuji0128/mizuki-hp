@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { AppBar, Toolbar, Typography, Button, Box, IconButton, Menu, MenuItem } from "@mui/material";
-import Image from "next/image";
-import MenuIcon from "@mui/icons-material/Menu";
-import Link from "next/link";
-import useMediaQuery from "@mui/material/useMediaQuery";
-import { useTheme } from "@mui/material/styles";
 import { useSimpleBar } from "@/components/SimpleBarWrapper";
-import ProfileConsoleModal from "./ProfileConsoleModal";
+import MenuIcon from "@mui/icons-material/Menu";
+import { AppBar, Box, Button, IconButton, Menu, MenuItem, Toolbar, Typography } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import { SessionProvider } from "next-auth/react";
+import Image from "next/image";
+import Link from "next/link";
+import React, { useEffect, useState } from "react";
+import ProfileConsoleModal from "./ProfileConsoleModal";
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -75,8 +75,8 @@ export default function Header() {
               }}
             >
               <Image
-                src="/fusetsu_logo_transparent.png"
-                alt="風雪株式会社ロゴ"
+                src="/seta_logo_transparent.png"
+                alt="瀬田製作所ロゴ"
                 height={isTablet ? 30 : 40}
                 width={isTablet ? 30 : 40}
               />
@@ -90,7 +90,7 @@ export default function Header() {
                   fontSize: { xs: "16px", md: "20px" },
                 }}
               >
-                風雪株式会社
+                瀬田製作所
               </Typography>
             </Box>
           </Link>
@@ -124,7 +124,7 @@ export default function Header() {
                         backgroundColor: "rgba(255, 255, 255, 0.1)",
                       },
                       fontSize: { xs: "13px", md: "15px" },
-                      padding: {xs:"0.5rem 0.4rem", md:"0.5rem 0.7rem"},
+                      padding: { xs: "0.5rem 0.4rem", md: "0.5rem 0.7rem" },
                     }}
                   >
                     {content.title}

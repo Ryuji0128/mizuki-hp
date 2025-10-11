@@ -1,9 +1,9 @@
-import { NextAuthConfig } from "next-auth";
-import Google from "next-auth/providers/google";
-import Credentials from "next-auth/providers/credentials";
-import bcryptjs from "bcryptjs";
 import { getPrismaClient } from "@/lib/db";
 import { fetchSecrets } from "@/lib/fetchSecrets";
+import bcryptjs from "bcryptjs";
+import { NextAuthConfig } from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 
 export const authOptions = async () => {
   const secrets = await fetchSecrets([
@@ -80,7 +80,7 @@ export const authOptions = async () => {
       }),
     ],
     theme: {
-      logo: "/fusetsu_logo_transparent.png",
+      logo: "/seta_logo_transparent.png",
       buttonText: "Googleでログイン",
     },
   };
