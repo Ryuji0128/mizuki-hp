@@ -80,7 +80,7 @@ export const authOptions = async () => {
       }),
     ],
     theme: {
-      logo: "/seta_logo_transparent.png",
+      logo: "/mizuki_logo_transparent.jpg",
       buttonText: "Googleでログイン",
     },
   };

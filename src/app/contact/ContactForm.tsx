@@ -134,10 +134,9 @@ const ContactForm = () => {
           paddingY={5}
           sx={{ textAlign: "justify", textJustify: "inter-word" }}
         >
-          当社及び当社が提供するサービスに関するお問い合わせは、
-          必須項目にご入力の上、下記フォームよりお気軽にお問い合わせください。
-          <br></br>
-          また、弊社の個人情報保護方針につきましては「プライバシーポリシー」ページをご覧ください。
+          下記の送信フォームよりお問い合わせ可能です。<br />
+          ご質問・ご相談のある方はお気軽にお問い合わせください。<br />
+          またネット予約はこちらより２４時間受け付けております。<br />
         </Typography>
         <Box
           sx={{
@@ -149,7 +148,7 @@ const ContactForm = () => {
         >
           <TextField
             inputRef={nameRef}
-            label="氏名・担当者名*"
+            label="お名前*"
             name="name"
             error={Boolean(errors.name)}
             helperText={errors.name}
@@ -157,13 +156,13 @@ const ContactForm = () => {
             fullWidth
           />
 
-          <TextField
+          {/* <TextField
             inputRef={companyRef}
             label="企業名"
             name="company"
             onChange={() => handleChange("company")}
             fullWidth
-          />
+          /> */}
 
           <TextField
             inputRef={emailRef}
@@ -187,7 +186,7 @@ const ContactForm = () => {
 
           <TextField
             inputRef={inquiryRef}
-            label="お問い合わせ・ご依頼内容*"
+            label="お問い合わせ内容*"
             name="inquiry"
             error={Boolean(errors.inquiry)}
             helperText={errors.inquiry}

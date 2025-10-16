@@ -1,11 +1,14 @@
-import React from "react";
 import { Box } from "@mui/material";
+import React from "react";
+import ConsultationOutline from "./_home/ConsultationOutline";
+import ConsultationOutlineMainTitle from "./_home/ConsultationOutlineMainTitle";
 import HeroTopSection from "./_home/HeroTopSection";
-import AboutFusetsuMainTitle from "./_home/AboutFusetsuMainTitle";
-import AboutFusetsuDetail from "./_home/AboutFusetsuDetail";
-import CaseStudyDetails from "./_home/CaseStudyDetails";
-import CaseStudyMainTitle from "./_home/CaseStudyMainTitle";
-import NewsListOutline from "./_home/NewsListOutline";
+import MedicalHoursMainTitle from "./_home/MedicalHoursMainTitle";
+import News from "./_home/News";
+import NewsMainTitle from "./_home/NewsMainTitle";
+import Reserve from "./_home/Reserve";
+import ReserveMainTitle from "./_home/ReserveMainTitle";
+import Message01 from "./consultation/Message01";
 
 const HomePageContent: React.FC = () => {
   return (
@@ -15,15 +18,21 @@ const HomePageContent: React.FC = () => {
       <HeroTopSection></HeroTopSection>
 
       {/* お知らせセクション */}
-      <NewsListOutline></NewsListOutline>
+      <NewsMainTitle></NewsMainTitle>
+      <News></News>
 
-      {/* 会社案内セクション */}
-      <AboutFusetsuMainTitle></AboutFusetsuMainTitle>
-      <AboutFusetsuDetail></AboutFusetsuDetail>
+      {/* 診療案内セクション */}
+      <ConsultationOutlineMainTitle></ConsultationOutlineMainTitle>
+      <ConsultationOutline></ConsultationOutline>
 
-      {/* 導入事例セクション */}
-      <CaseStudyMainTitle></CaseStudyMainTitle>
-      <CaseStudyDetails></CaseStudyDetails>
+      {/* 診療時間セクション */}
+      <MedicalHoursMainTitle></MedicalHoursMainTitle>
+      <Message01></Message01>
+
+      {/* 人間ドック予約セクション */}
+      <ReserveMainTitle></ReserveMainTitle>
+      <Reserve></Reserve>
+
 
       {/* セクションの下にスペース */}
       <Box sx={{ height: "200px" }} />

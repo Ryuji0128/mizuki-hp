@@ -33,7 +33,7 @@ export default function Footer() {
         }}
       >
         <Typography variant="body1" color="inherit">
-          &copy; {new Date().getFullYear()} 瀬田製作所
+          &copy; {new Date().getFullYear()} みずきクリニック
         </Typography>
         <Box
           sx={{

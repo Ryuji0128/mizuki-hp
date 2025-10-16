@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     // A 顧客宛のメールコンテンツを定義
     const customerEmailContent = {
       message: {
-        subject: "【瀬田製作所】お問い合わせをお受けしました",
+        subject: "【みずきクリニック】お問い合わせをお受けしました",
         body: {
           contentType: "HTML",
           content: `
@@ -62,16 +62,16 @@ export async function POST(req: NextRequest) {
                   ${sanitizedData.name} 様
                 </p>
                 <p>
-                  この度は、瀬田製作所へお問い合わせいただき、誠にありがとうございます。<br>
+                  この度は、みずきクリニックへお問い合わせいただき、誠にありがとうございます。<br>
                   弊社担当にて、お送りいただきました内容を確認の上、追ってご連絡いたします。
                 </p>
                 <p>今後とも、弊社をよろしくお願いいたします。</p>
               </div>
               <div style="border: 1px solid #ccc; padding: 10px; background-color: #f9f9f9; display: flex; flex-wrap: wrap; justify-content: center; align-items: center;">
                 <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; margin: 20px;">
-                  <img src="https://fusetsu.co.jp/seta_logo_transparent.png" alt="瀬田製作所ロゴ" 
+                  <img src="https://fusetsu.co.jp/mizuki_logo_transparent.jpg" alt="みずきクリニックロゴ" 
                       style="width: 50px; height: auto; margin-right: 10px;">
-                  <span style="font-weight: bold; text-align: center;">瀬田製作所</span>
+                  <span style="font-weight: bold; text-align: center;">みずきクリニック</span>
                 </div>
                 <p style="margin:20px; text-align: center;">
                   〒521-0312　滋賀県米原市上野 709<br>

@@ -10,9 +10,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "瀬田製作所",
+  title: "みずきクリニック",
   description:
-    "瀬田製作所は、Webアプリケーションやモバイルアプリの開発を中心に、多様なプロジェクトで信頼を得ているエンジニアチームです。先進技術を用いた、最適なソリューションを提供します。",
+    "みずきクリニックは、Webアプリケーションやモバイルアプリの開発を中心に、多様なプロジェクトで信頼を得ているエンジニアチームです。先進技術を用いた、最適なソリューションを提供します。",
 };
 
 export default function RootLayout({

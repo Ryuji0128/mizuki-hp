@@ -13,7 +13,7 @@ export default async function ContactPage() {
   return (
     <Box
       sx={{
-        backgroundImage: "url(/fusetsu_logo_background.png)",
+        // backgroundImage: "url(/fusetsu_logo_background.png)",
         backgroundSize: "contain",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",

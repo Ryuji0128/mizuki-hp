@@ -9,11 +9,12 @@ interface ResponsiveAdjustmentContainerProps {
   rightComponent: React.ReactNode; // 右側に表示するコンポーネント
   imageSrc?: string; // 画像のパス
   imageTitle?: string; // 画像のalt
+  imageWidth?: string | number;
 }
 
 const ResponsiveAdjustmentContainer: React.FC<
   ResponsiveAdjustmentContainerProps
-> = ({ titlesWidth, contentWidth, titles, rightComponent, imageSrc, imageTitle }) => {
+> = ({ titlesWidth, contentWidth, titles, rightComponent, imageSrc, imageTitle, imageWidth = 240, }) => {
   return (
     <Box
       sx={{
@@ -27,10 +28,8 @@ const ResponsiveAdjustmentContainer: React.FC<
       }}
     >
       {/* 左側コンポーネント */}
-      <Box
-        sx={{ width: { xs: `${titlesWidth.xs}%`, sm: `${titlesWidth.sm}%` } }}
-      >
-        <LeftSubtitleBox titles={titles} imageSrc={imageSrc} imageTitle={imageTitle} />{" "}
+      <Box sx={{ width: { xs: `${titlesWidth.xs}%`, sm: `${titlesWidth.sm}%` } }}>
+        <LeftSubtitleBox titles={titles} imageSrc={imageSrc} imageTitle={imageTitle} imageWidth={imageWidth} />{" "}
       </Box>
 
       {/* 右側コンポーネント */}

@@ -1,174 +1,106 @@
+
+// slick-carousel の CSS をインポート 
+// yarn add react-slick slick-carousel
+// yarn add -D @types/react-slick
+
 "use client";
 
-import { useSimpleBar } from "@/components/SimpleBarWrapper";
-import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
-import { motion } from "framer-motion";
-import React, { useEffect, useState } from "react";
+import { Box, Typography } from "@mui/material";
+import React from "react";
+import Slider from "react-slick";
 
-// ランダムな値を生成する関数
-const getRandomValue = (min: number, max: number): number =>
-  Math.random() * (max - min) + min;
-
-// 三角形データ生成関数
-const generateTriangles = (count: number) => {
-  return Array.from({ length: count }, () => {
-    const attachToRight = Math.random() > 0.5; // 50%の確率で右端か下端に接する
-    return {
-      size: getRandomValue(100, 300), // サイズ
-      opacity: getRandomValue(0.4, 1.0), // 透明度
-      bottom: attachToRight ? 0 : `${getRandomValue(0, 50)}%`, // 下端に接する場合
-      right: attachToRight ? `${getRandomValue(0, 50)}%` : 0, // 右端に接する場合
-      rotation: getRandomValue(-30, 30), // 回転角度
-    };
-  });
-};
-
-// HexカラーをRGBに変換する関数
-const hexToRgb = (hex: string): { r: number; g: number; b: number } => {
-  const cleanHex = hex.replace("#", "");
-  const bigint = parseInt(cleanHex, 16);
-  return {
-    r: (bigint >> 16) & 255,
-    g: (bigint >> 8) & 255,
-    b: bigint & 255,
-  };
-};
-
-// 線形補間（Lerp）関数
-const lerp = (start: number, end: number, t: number): number =>
-  start + t * (end - start);
-
+// slick-carousel の CSS をインポート
+import "slick-carousel/slick/slick-theme.css";
+import "slick-carousel/slick/slick.css";
 
 const HeroTopSection: React.FC = () => {
-  const theme = useTheme();
-  const { scrollContainerRef } = useSimpleBar();
-
-  const [scrollY, setScrollY] = useState(0);
-
-  const isMobile = useMediaQuery(`(max-width:${theme.breakpoints.values.sm}px)`);
-  const isTablet = useMediaQuery(`(max-width:${theme.breakpoints.values.md}px)`);
-  const appBarHeight = isMobile ? theme.custom.header.height.mobile : theme.custom.header.height.desktop; // モバイル: 56px, デスクトップ: 64px
-
-  const fontSize = isMobile ? "3rem" : isTablet ? "6rem" : "8rem";
-  const justifyContent = isMobile || isTablet ? "center" : "flex-start";
-  const alignItems = isMobile || isTablet ? "center" : "flex-start";
-  const paddingTop = isMobile || isTablet ? 0 : "15vh";
-
-  // 三角形データの状態管理
-  const [triangles, setTriangles] = useState<
-    { size: number; opacity: number; bottom: string | number; right: string | number; rotation: number }[]
-  >([]);
-
-  useEffect(() => {
-    const scrollContainer = scrollContainerRef.current;
-
-    if (!scrollContainer) return;
-
-    setTriangles(generateTriangles(5)); // 5つの三角形を生成
-
-    const handleScroll = () => {
-      setScrollY(scrollContainer.scrollTop);
-    };
-
-    scrollContainer.addEventListener("scroll", handleScroll);
-    return () => scrollContainer.removeEventListener("scroll", handleScroll);
-  }, [scrollContainerRef]);
-
-  // スクロール位置に基づいて色を補間
-  const calculateColor = (scrollY: number) => {
-    const startColor = hexToRgb(theme.palette.primary.light);
-    const targetColor = hexToRgb(theme.palette.primary.main);
-
-    const t = Math.min(scrollY / 300, 1); // 0から1の範囲で補間
-    const r = Math.round(lerp(startColor.r, targetColor.r, t));
-    const g = Math.round(lerp(startColor.g, targetColor.g, t));
-    const b = Math.round(lerp(startColor.b, targetColor.b, t));
-
-    return `rgb(${r}, ${g}, ${b})`;
+  const settings = {
+    dots: true, // 下部にドットを表示
+    infinite: true, // 無限ループ
+    speed: 800, // スライドのスピード(ms)
+    slidesToShow: 1, // 一度に表示するスライド数
+    slidesToScroll: 1, // 一度にスクロールするスライド数
+    autoplay: true, // 自動再生
+    autoplaySpeed: 4000, // 自動再生の間隔(ms)
+    arrows: false, // 左右の矢印を非表示（必要なら true に）
   };
+
+  const slides = [
+    {
+      image: "/top/image1.jpg",
+      // title: "地域に寄り添う医療を",
+      // subtitle: "みずきクリニックへようこそ",
+    },
+    {
+      image: "/top/image2.jpg",
+      // title: "安心・信頼の医療体制",
+      // subtitle: "あなたの健康をサポートします",
+    },
+    {
+      image: "/top/image3.jpg",
+      // title: "笑顔のある日常を",
+      // subtitle: "心と体のケアを大切に",
+    },
+  ];
 
   return (
     <Box
-      display="flex"
-      justifyContent={justifyContent}
-      alignItems={alignItems}
-      height={`calc(100vh - ${appBarHeight}px)`} // 100vhからAppBarの高さを引く
-      bgcolor="#f5f5f5"
-      pt={paddingTop}
-      pl={isMobile || isTablet ? 0 : "5vw"}
-      position="relative"
-      overflow="hidden"
-      flexDirection="column"
+      sx={{
+        width: "100%",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        py: 4,
+      }}
     >
-      {/* テキストの影 */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.3 }}
-        transition={{ duration: 1 }}
-        style={{
-          position: "absolute",
-          transform: "translateY(30px) scale(1.2)",
-          color: "rgba(0, 0, 0, 0.2)",
-          zIndex: 0,
+      <Box
+        sx={{
+          width: "100%",
+          maxWidth: "1020px",
+          height: "500px",
+          borderRadius: "16px",
+          overflow: "hidden",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
         }}
       >
-        <Typography variant="h1" sx={{ fontSize, fontWeight: "bold", textAlign: "left" }}>
-          瀬田
-        </Typography>
-        <Typography variant="h1" sx={{ fontSize, fontWeight: "bold", textAlign: "left" }}>
-          製作所
-        </Typography>
-      </motion.div>
-
-      {/* テキスト */}
-      <motion.div
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1.5 }}
-        style={{ position: "relative", zIndex: 1 }}
-      >
-        <Typography
-          variant="h1"
-          sx={{
-            fontSize,
-            fontWeight: "bold",
-            textShadow: "2px 2px 5px rgba(0, 0, 0, 0.3)",
-            textAlign: "left",
-          }}
-        >
-          瀬田
-        </Typography>
-        <Typography
-          variant="h1"
-          sx={{
-            fontSize,
-            fontWeight: "bold",
-            textShadow: "2px 2px 5px rgba(0, 0, 0, 0.3)",
-            textAlign: "left",
-          }}
-        >
-          製作所
-        </Typography>
-      </motion.div>
-
-      {/* ランダムな丸 */}
-      {triangles.map((circle, index) => (
-        <Box
-          key={index}
-          sx={{
-            position: "absolute",
-            bottom: circle.bottom,
-            right: circle.right,
-            width: `${circle.size}px`,
-            height: `${circle.size}px`,
-            backgroundColor: calculateColor(scrollY), // 色の補間
-            borderRadius: "50%", // ← 丸くする
-            transform: `rotate(${circle.rotation}deg)`,
-            opacity: circle.opacity,
-            zIndex: 0,
-          }}
-        ></Box>
-      ))}
+        <Slider {...settings}>
+          {slides.map((slide, index) => (
+            <Box
+              key={index}
+              sx={{
+                position: "relative",
+                height: "500px",
+                backgroundImage: `url(${slide.image})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            >
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  // backgroundColor: "rgba(0, 0, 0, 0.4)",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  color: "white",
+                  textAlign: "center",
+                  p: 3,
+                }}
+              >
+                <Typography variant="h5" sx={{ fontWeight: "bold", mb: 1 }}>
+                  {slide.title}
+                </Typography>
+                <Typography variant="body1">{slide.subtitle}</Typography>
+              </Box>
+            </Box>
+          ))}
+        </Slider>
+      </Box>
     </Box>
   );
 };

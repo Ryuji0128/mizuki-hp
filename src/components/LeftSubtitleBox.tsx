@@ -1,24 +1,27 @@
-import React from "react";
 import { Box, Typography } from "@mui/material";
 import Image from "next/image";
+import React from "react";
 
 interface titleProps {
   titles: string[]; // 2行以上のタイトルを受け取る
   imageSrc?: string; // 画像のパス
   imageTitle?: string; // 画像のalt
+  imageWidth?: string | number; // 画像サイズ
 }
 
 const LeftSubtitleBox: React.FC<titleProps> = ({
   titles,
   imageSrc,
   imageTitle,
+  imageWidth = 240,
+
 }) => {
   const greenLineLength = 8;
 
   return (
     <Box
       sx={{
-        width: "100%",
+        width: imageWidth,
         maxWidth: { md: "400px" }, // 左側の幅を制限
         display: "flex",
         flexDirection: { xs: "column-reverse", sm: "column" }, // モバイル: 縦並び, タブレット以上: 横並び
