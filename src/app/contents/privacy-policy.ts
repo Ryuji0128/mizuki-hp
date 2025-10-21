@@ -99,7 +99,7 @@ export const data: ISection[] = [
     listItems: [
       {
         type: "paragraph",
-        content: ["住所： 〒521-0312 滋賀県米原市上野709", "社名： みずきクリニック", "代表取締役： 木村 竜次", "担当部署： 木村 竜次", "Eメールアドレス： t_hiroki@fusetsu.co.jp"],
+        content: ["住所： 〒521-0312 滋賀県米原市上野709", "社名： みずきクリニック", "代表取締役： 木村 竜次", "担当部署： 木村 竜次", "Eメールアドレス： t_hiroki@mizuki-clinic.online"],
       },
     ],
   },

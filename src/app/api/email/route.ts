@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
               </div>
               <div style="border: 1px solid #ccc; padding: 10px; background-color: #f9f9f9; display: flex; flex-wrap: wrap; justify-content: center; align-items: center;">
                 <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; margin: 20px;">
-                  <img src="https://fusetsu.co.jp/mizuki_logo_transparent.jpg" alt="みずきクリニックロゴ" 
+                  <img src="https://mizuki-clinic.online/mizuki_logo_transparent.jpg" alt="みずきクリニックロゴ" 
                       style="width: 50px; height: auto; margin-right: 10px;">
                   <span style="font-weight: bold; text-align: center;">みずきクリニック</span>
                 </div>

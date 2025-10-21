@@ -26,7 +26,7 @@ const BusinessIntroduction: React.FC = () => {
         contentWidth={contentWidth}
         titles={titlesOfMessage01}
         rightComponent={<Message01 />}
-        imageSrc="/online/online.png"
+        imageSrc="/online/online1.png"
         imageWidth={100}
       />
       {/* オンライン診療 */}
@@ -35,7 +35,7 @@ const BusinessIntroduction: React.FC = () => {
         contentWidth={contentWidth}
         titles={titlesOfMessage02}
         rightComponent={<Message02 />}
-        imageSrc="/online//online_doctor.png"
+        imageSrc="/online/online2.png"
         imageWidth={200}
       />
     </>
