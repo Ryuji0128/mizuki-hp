@@ -1,33 +1,42 @@
-import { getPrismaClient } from "@/lib/db";
-import { fetchSecret } from "@/lib/fetchSecrets";
-import { getMsalAccessToken } from "@/lib/msal";
 import { validateInquiry } from "@/lib/validation";
 import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
+import nodemailer from "nodemailer";
 import xss from "xss";
-
-export async function GET() {
-  try {
-    const prisma = await getPrismaClient();
-    const inquiries = await prisma.inquiry.findMany({
-      orderBy: { createdAt: "desc" }, // 最新の問い合わせが上に来るように
-    });
-
-    return NextResponse.json({ inquiries });
-  } catch (error) {
-    console.error("問い合わせ一覧の取得に失敗:", error);
-    return NextResponse.json({ error: "問い合わせ一覧の取得に失敗しました" }, { status: 500 });
-  }
-}
 
 export async function POST(req: NextRequest) {
   const inquiryData = await req.json();
 
-  const secretName = "OUTLOOK_EMAIL";
+  // --- 🧩 reCAPTCHA 検証部分を追加 ---
+  const token = inquiryData.token;
+  if (!token) {
+    return NextResponse.json({ success: false, message: "reCAPTCHAトークンがありません。" }, { status: 400 });
+  }
 
-  const emailFrom = await fetchSecret(secretName);
+  try {
+    const verifyUrl = "https://www.google.com/recaptcha/api/siteverify";
+    const response = await axios.post(
+      verifyUrl,
+      new URLSearchParams({
+        secret: process.env.RECAPTCHA_SECRET_KEY!,
+        response: token,
+      }),
+      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+    );
 
-  // サニタイズ処理を追加
+    const data = response.data;
+    if (!data.success || data.score < 0.5) {
+      return NextResponse.json(
+        { success: false, message: "reCAPTCHA 検証に失敗しました。" },
+        { status: 400 }
+      );
+    }
+  } catch (error) {
+    console.error("reCAPTCHA検証エラー:", error);
+    return NextResponse.json({ success: false, message: "reCAPTCHA通信エラー" }, { status: 500 });
+  }
+
+  // --- ✉️ 以下は元のメール送信処理 ---
   const sanitizedData = {
     name: xss(inquiryData.name || ""),
     company: xss(inquiryData.company || ""),
@@ -42,154 +51,55 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const accessToken = await getMsalAccessToken();
-    const prisma = await getPrismaClient();
-
-    // A 顧客宛のメールコンテンツを定義
-    const customerEmailContent = {
-      message: {
-        subject: "【みずきクリニック】お問い合わせをお受けしました",
-        body: {
-          contentType: "HTML",
-          content: `
-            <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; line-height: 1.6;">
-              ${sanitizedData.company
-              ? `<p style="width: 100%;"><strong>${sanitizedData.company}</strong></p>`
-              : ""
-            }
-              <div style="margin-left: 10px; width: 100%;">
-                <p>
-                  ${sanitizedData.name} 様
-                </p>
-                <p>
-                  この度は、みずきクリニックへお問い合わせいただき、誠にありがとうございます。<br>
-                  弊社担当にて、お送りいただきました内容を確認の上、追ってご連絡いたします。
-                </p>
-                <p>今後とも、弊社をよろしくお願いいたします。</p>
-              </div>
-              <div style="border: 1px solid #ccc; padding: 10px; background-color: #f9f9f9; display: flex; flex-wrap: wrap; justify-content: center; align-items: center;">
-                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; margin: 20px;">
-                  <img src="https://mizuki-clinic.online/mizuki_logo_transparent.jpg" alt="みずきクリニックロゴ" 
-                      style="width: 50px; height: auto; margin-right: 10px;">
-                  <span style="font-weight: bold; text-align: center;">みずきクリニック</span>
-                </div>
-                <p style="margin:20px; text-align: center;">
-                  〒521-0312　滋賀県米原市上野 709<br>
-                  TEL: 090-6900-8231<br>
-                  MAIL: ${emailFrom}
-                </p>
-              </div>
-            </div>
-          `,
-        },
-        toRecipients: [
-          {
-            emailAddress: {
-              address: sanitizedData.email,
-            },
-          },
-        ],
-      },
-    };
-
-    // B 内部メールのコンテンツを定義
-    const internalEmailContent = {
-      message: {
-        subject: "【お客様お問い合わせ通知】",
-        body: {
-          contentType: "HTML",
-          content: `
-            <p>新しいお問い合わせを受信しました。</p>
-            <p><strong>氏名:</strong> ${sanitizedData.name}</p>
-            <p><strong>企業名:</strong> ${sanitizedData.company}</p>
-            <p><strong>メールアドレス:</strong> ${sanitizedData.email}</p>
-            <p><strong>電話番号:</strong> ${sanitizedData.phone}</p>
-            <p><strong>お問い合わせ内容:</strong><br>${sanitizedData.inquiry}</p>
-          `,
-        },
-        toRecipients: [
-          {
-            emailAddress: {
-              address: emailFrom, // 自社のメールアドレス
-            },
-          },
-        ],
-      },
-    };
-
-    // MSメールサービスにメール送信リクエストを送信
-
-    // A' お客様へのメール送信
-    const customerResponse = await axios.post(
-      `https://graph.microsoft.com/v1.0/users/${emailFrom}/sendMail`,
-      customerEmailContent,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (customerResponse.status !== 202) {
-      throw new Error(
-        `お客様へのメール送信に失敗しました: ${customerResponse.statusText}`
-      );
-    }
-
-    // B' 自社へのメール送信
-    const internalResponse = await axios.post(
-      `https://graph.microsoft.com/v1.0/users/${emailFrom}/sendMail`,
-      internalEmailContent,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    // メールの内容をデータベースに登録
-    await prisma.inquiry.create({
-      data: {
-        name: sanitizedData.name,
-        company: sanitizedData.company,
-        email: sanitizedData.email,
-        phone: sanitizedData.phone,
-        inquiry: sanitizedData.inquiry,
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT) || 465,
+      secure: true,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
       },
     });
 
-    if (internalResponse.status !== 202) {
-      throw new Error(
-        `自社へのメール送信に失敗しました: ${internalResponse.statusText}`
-      );
-    }
+    const adminAddress = process.env.CONTACT_TO_EMAIL || process.env.SMTP_USER;
 
-    return NextResponse.json({ message: "メールが送信されました" });
+    // 管理者宛メール
+    await transporter.sendMail({
+      from: `"みずきクリニック Webフォーム" <${process.env.SMTP_USER}>`,
+      to: adminAddress,
+      subject: "【お問い合わせ】" + sanitizedData.name + " 様より",
+      html: `
+        <h3>新しいお問い合わせがありました。</h3>
+        <p><strong>お名前:</strong> ${sanitizedData.name}</p>
+        <p><strong>メール:</strong> ${sanitizedData.email}</p>
+        <p><strong>電話番号:</strong> ${sanitizedData.phone}</p>
+        <p><strong>お問い合わせ内容:</strong><br>${sanitizedData.inquiry}</p>
+      `,
+    });
+
+    // 自動返信メール（ユーザー宛）
+    await transporter.sendMail({
+      from: `"みずきクリニック" <${process.env.SMTP_USER}>`,
+      to: sanitizedData.email,
+      subject: "【自動返信】お問い合わせありがとうございます",
+      html: `
+        <p>${sanitizedData.name} 様</p>
+        <p>このたびはお問い合わせありがとうございます。</p>
+        <p>以下の内容で受け付けました。</p>
+        <hr />
+        <p>${sanitizedData.inquiry}</p>
+        <hr />
+        <p>２営業日以内に、担当者よりご連絡いたします。</p>
+        <p>みずきクリニック<br>
+        滋賀県米原市上野 709<br>
+        TEL: 090-6900-8231<br>
+        </p>
+      `,
+    });
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("メール送信エラー:", error);
-    return NextResponse.json(
-      { error: "メール送信に失敗しました" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(req: NextRequest) {
-  try {
-    const { id } = await req.json();
-
-    if (!id) {
-      return NextResponse.json({ error: "IDが必要です" }, { status: 400 });
-    }
-
-    const prisma = await getPrismaClient();
-    await prisma.inquiry.delete({ where: { id } });
-
-    return NextResponse.json({ message: "問い合わせを削除しました" });
-  } catch (error) {
-    console.error("問い合わせの削除に失敗:", error);
-    return NextResponse.json({ error: "問い合わせの削除に失敗しました" }, { status: 500 });
+    return NextResponse.json({ success: false, error: "送信に失敗しました" });
   }
 }
