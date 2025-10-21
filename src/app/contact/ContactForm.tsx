@@ -7,14 +7,11 @@ import {
   Box,
   Button,
   CircularProgress,
-  Link,
   Modal,
   TextField,
-  Typography,
+  Typography
 } from "@mui/material";
 import axios from "axios";
-import { ReCaptchaProvider, useReCaptcha } from "next-recaptcha-v3";
-import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
 
 interface FormErrors {
@@ -29,10 +26,7 @@ interface FormErrors {
  * ContactFormContent
  * 実際のフォームの中身
  */
-const ContactFormContent = () => {
-  console.log("RECAPTCHA SITE KEY:", process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY);
-  const { executeRecaptcha } = useReCaptcha(); // reCAPTCHA トークン取得関数
-
+export default function ContactForm() {
   const nameRef = useRef<HTMLInputElement>(null);
   const companyRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -54,69 +48,46 @@ const ContactFormContent = () => {
   };
 
   // フォーム送信
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      // フォームデータを取得
-      const formData = {
-        name: nameRef.current?.value || "",
-        company: companyRef.current?.value || "",
-        email: emailRef.current?.value || "",
-        phone: phoneRef.current?.value || "",
-        inquiry: inquiryRef.current?.value || "",
-      };
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
 
-      // 入力チェック
-      const validationErrors = validateInquiry(formData);
-      setErrors(validationErrors);
-      if (Object.keys(validationErrors).length > 0) return;
+    const formData = {
+      name: nameRef.current?.value || "",
+      company: companyRef.current?.value || "",
+      email: emailRef.current?.value || "",
+      phone: phoneRef.current?.value || "",
+      inquiry: inquiryRef.current?.value || "",
+    };
 
-      setIsModalOpen(true);
-      setModalContent("loading");
+    // 入力チェック
+    const validationErrors = validateInquiry(formData);
+    setErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) return;
 
-      try {
-        // ✅ reCAPTCHA トークンを取得
-        const token = await executeRecaptcha("form_submit");
+    setIsModalOpen(true);
+    setModalContent("loading");
 
-        if (!token) {
-          console.error("reCAPTCHA token が取得できませんでした");
-          setModalContent("error");
-          return;
-        }
+    try {
+      // ✅ reCAPTCHA は一旦スキップ
+      const emailRes = await axios.post("/api/email", formData);
 
-        // ✅ まず reCAPTCHA 検証API呼び出し
-        const recaptchaRes = await axios.post("/api/recaptcha", { token });
+      if (emailRes.data.success) {
+        setModalContent("success");
 
-        if (!recaptchaRes.data.success) {
-          console.error("reCAPTCHA 検証失敗:", recaptchaRes.data);
-          setModalContent("error");
-          return;
-        }
-
-        // ✅ 問い合わせメール送信API呼び出し
-        const emailRes = await axios.post("/api/email", {
-          ...formData,
-          token,
-        });
-
-        if (emailRes.data.success) {
-          setModalContent("success");
-          // フォーム初期化
-          if (nameRef.current) nameRef.current.value = "";
-          if (companyRef.current) companyRef.current.value = "";
-          if (emailRef.current) emailRef.current.value = "";
-          if (phoneRef.current) phoneRef.current.value = "";
-          if (inquiryRef.current) inquiryRef.current.value = "";
-        } else {
-          setModalContent("error");
-        }
-      } catch (error) {
-        console.error("送信エラー:", error);
+        // フォーム初期化
+        if (nameRef.current) nameRef.current.value = "";
+        if (companyRef.current) companyRef.current.value = "";
+        if (emailRef.current) emailRef.current.value = "";
+        if (phoneRef.current) phoneRef.current.value = "";
+        if (inquiryRef.current) inquiryRef.current.value = "";
+      } else {
         setModalContent("error");
       }
-    },
-    [executeRecaptcha]
-  );
+    } catch (error) {
+      console.error("送信エラー:", error);
+      setModalContent("error");
+    }
+  }, []);
 
   return (
     <BaseContainer>
@@ -212,37 +183,6 @@ const ContactFormContent = () => {
           >
             送信
           </Button>
-
-          <Box sx={{ display: "flex", alignItems: "center", marginTop: 2 }}>
-            <Image
-              src="/recaptcha.svg"
-              alt="reCAPTCHA"
-              width={40}
-              height={40}
-              style={{ marginRight: "10px", height: 40 }}
-            />
-            <Typography variant="body2" color="textSecondary">
-              このサイトは reCAPTCHA によって保護されており、Google の
-              <Link
-                href="https://policies.google.com/privacy"
-                target="_blank"
-                rel="noopener"
-                sx={{ mx: 0.5 }}
-              >
-                プライバシーポリシー
-              </Link>
-              と
-              <Link
-                href="https://policies.google.com/terms"
-                target="_blank"
-                rel="noopener"
-                sx={{ mx: 0.5 }}
-              >
-                利用規約
-              </Link>
-              が適用されます。
-            </Typography>
-          </Box>
         </Box>
       </Box>
 
@@ -293,19 +233,5 @@ const ContactFormContent = () => {
         </Box>
       </Modal>
     </BaseContainer>
-  );
-};
-
-/**
- * ✅ ここで Provider を包む（重要ポイント）
- */
-export default function ContactForm() {
-  return (
-    <ReCaptchaProvider
-      reCaptchaKey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
-      useRecaptchaNet={true}
-    >
-      <ContactFormContent />
-    </ReCaptchaProvider>
   );
 }

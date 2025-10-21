@@ -1,5 +1,7 @@
 import { Box } from "@mui/material";
 import React from "react";
+import ClinicInfo from "./_home/ClinicInfo";
+import ClinicInfoMainTitle from "./_home/ClinicInfoMainTitle";
 import ConsultationOutline from "./_home/ConsultationOutline";
 import ConsultationOutlineMainTitle from "./_home/ConsultationOutlineMainTitle";
 import HeroTopSection from "./_home/HeroTopSection";
@@ -21,6 +23,10 @@ const HomePageContent: React.FC = () => {
       <NewsMainTitle></NewsMainTitle>
       <News></News>
 
+      {/* 基本情報セクション */}
+      <ClinicInfoMainTitle></ClinicInfoMainTitle>
+      <ClinicInfo></ClinicInfo>
+
       {/* 診療案内セクション */}
       <ConsultationOutlineMainTitle></ConsultationOutlineMainTitle>
       <ConsultationOutline></ConsultationOutline>
@@ -32,7 +38,6 @@ const HomePageContent: React.FC = () => {
       {/* 人間ドック予約セクション */}
       <ReserveMainTitle></ReserveMainTitle>
       <Reserve></Reserve>
-
 
       {/* セクションの下にスペース */}
       <Box sx={{ height: "200px" }} />
