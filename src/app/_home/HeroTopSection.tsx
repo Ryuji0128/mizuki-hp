@@ -16,6 +16,9 @@ const HeroTopSection: React.FC = () => {
     { image: "/top/image1.jpg", title: "" },
     { image: "/top/image2.jpg", title: "" },
     { image: "/top/image3.jpg", title: "" },
+    { image: "/top/image4.jpg", title: "" },
+    { image: "/top/image5.jpg", title: "" },
+    { image: "/top/image6.jpg", title: "" },
   ];
 
   return (
@@ -31,8 +34,8 @@ const HeroTopSection: React.FC = () => {
       <Box
         sx={{
           width: "100%",
-          maxWidth: "1020px",
-          height: "500px",
+          maxWidth: "800px",
+          height: "550px",
           borderRadius: "16px",
           overflow: "hidden",
           boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
