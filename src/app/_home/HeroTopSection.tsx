@@ -5,17 +5,17 @@
 
 import { Box, Typography } from "@mui/material";
 import React from "react";
-import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
+import { Swiper, SwiperSlide } from "swiper/react";
 
 import "swiper/css";
 import "swiper/css/pagination";
 
 const HeroTopSection: React.FC = () => {
   const slides = [
-    { image: "/top/image1.jpg", title: "地域に寄り添う医療を" },
-    { image: "/top/image2.jpg", title: "安心・信頼の医療体制" },
-    { image: "/top/image3.jpg", title: "笑顔のある日常を" },
+    { image: "/top/image1.jpg", title: "" },
+    { image: "/top/image2.jpg", title: "" },
+    { image: "/top/image3.jpg", title: "" },
   ];
 
   return (
