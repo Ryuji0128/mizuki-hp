@@ -34,7 +34,6 @@ model Inquiry {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   name      String
-  company   String
   email     String
   phone     String
   inquiry   String
@@ -79,6 +78,15 @@ model Account {
 
   @@unique([provider, providerAccountId])
   @@index([userId])
+}
+
+model Blog {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  title     String
+  content   String
+  imageUrl  String?
 }
 
 model Session {

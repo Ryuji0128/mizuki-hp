@@ -2,30 +2,29 @@
 
 import {
   Box,
-  Typography,
   Button,
+  Modal,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Modal,
+  Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import axios from "axios";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
-import { useEffect, useState, useCallback } from "react";
-import axios from "axios";
 import { Session } from "next-auth";
+import { useCallback, useEffect, useState } from "react";
 
 interface Inquiry {
   id: number;
   createdAt: string;
   name: string;
-  company: string;
   email: string;
   phone: string;
   inquiry: string;
@@ -182,11 +181,6 @@ const InquiryManagement: React.FC<InquiryManagementProps> = ({ session }) => {
                   氏名
                 </TableCell>
                 {!isMobile && (
-                  <TableCell sx={{ fontWeight: "bold", width: "180px", textAlign: "center" }}>
-                    企業名
-                  </TableCell>
-                )}
-                {!isMobile && (
                   <TableCell sx={{ fontWeight: "bold", width: "220px", textAlign: "center" }}>
                     メールアドレス
                   </TableCell>
@@ -235,18 +229,6 @@ const InquiryManagement: React.FC<InquiryManagementProps> = ({ session }) => {
                   >
                     {inquiry.name}
                   </TableCell>
-                  {!isMobile && (
-                    <TableCell
-                      sx={{
-                        maxWidth: "180px",
-                        overflowX: "auto",
-                        whiteSpace: "nowrap",
-                        textAlign: "center",
-                      }}
-                    >
-                      {inquiry.company}
-                    </TableCell>
-                  )}
                   {!isMobile && (
                     <TableCell
                       sx={{
@@ -419,9 +401,6 @@ const InquiryManagement: React.FC<InquiryManagementProps> = ({ session }) => {
               </Typography>
               <Typography>
                 <strong>氏名:</strong> {selectedInquiry.name}
-              </Typography>
-              <Typography>
-                <strong>企業名:</strong> {selectedInquiry.company}
               </Typography>
               <Typography>
                 <strong>メールアドレス:</strong> {selectedInquiry.email}

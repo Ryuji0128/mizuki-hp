@@ -1,91 +1,104 @@
+// src/auth.config.ts
 import { getPrismaClient } from "@/lib/db";
-import { fetchSecrets } from "@/lib/fetchSecrets";
 import bcryptjs from "bcryptjs";
 import { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 
-export const authOptions = async () => {
-  const secrets = await fetchSecrets([
-    "AUTH_SECRET",
-    "AUTH_GOOGLE_ID",
-    "AUTH_GOOGLE_SECRET",
-    "AUTH_URL",
-  ]);
-  process.env.AUTH_SECRET = secrets.AUTH_SECRET;
-  process.env.AUTH_GOOGLE_ID = secrets.AUTH_GOOGLE_ID;
-  process.env.AUTH_GOOGLE_SECRET = secrets.AUTH_GOOGLE_SECRET;
-  process.env.AUTH_URL = secrets.AUTH_URL;
-  return {
-    pages: {
-      signIn: "/portal-login",
+const prisma = getPrismaClient();
+
+const authConfig = {
+  pages: {
+    signIn: "/portal-login",
+  },
+
+  providers: [
+    Google({
+      clientId: process.env.AUTH_GOOGLE_ID!,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET!,
+    }),
+
+    Credentials({
+      name: "Credentials",
+      credentials: {
+        email: { label: "メールアドレス", type: "text" },
+        password: { label: "パスワード", type: "password" },
+      },
+      async authorize(credentials) {
+        // ✅ unknown → string に変換
+        const email = String(credentials?.email || "");
+        const password = String(credentials?.password || "");
+
+        if (!email || !password) {
+          throw new Error("メールアドレス若しくはパスワードが入力されていません。");
+        }
+
+        // ✅ Prismaのwhere句に安全なstringを渡す
+        const user = await prisma.user.findUnique({
+          where: { email },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            password: true,
+            role: true,
+          },
+        });
+
+        if (!user) throw new Error("ユーザーが存在しません。");
+
+        // ✅ パスワード比較時もstring型で確実に渡す
+        const passwordMatch = await bcryptjs.compare(password, String(user.password || ""));
+        if (!passwordMatch) throw new Error("パスワードが間違っています。");
+
+        // ✅ roleも含めて返す
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        };
+      },
+    }),
+  ],
+
+  callbacks: {
+    async jwt({ token, user }) {
+      // ログイン直後（userが存在する時）
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.role = user.role;
+      }
+
+      // 🔥 JWTがすでに存在していて、userが無い（後続リクエスト）ときにも
+      // roleが入っていなければ再取得して補完
+      if (!token.role && token.email) {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: token.email as string },
+          select: { role: true },
+        });
+        token.role = dbUser?.role || "VIEWER";
+      }
+
+      console.log("JWT TOKEN >>>", token);
+      return token;
     },
-    providers: [
-      Google({
-        name: "Google of Fusetsu.co",
-      }),
-      Credentials({
-        name: "credentials",
-        credentials: {
-          email: { label: "Email", type: "text", placeholder: "jsmith" },
-          password: { label: "Password", type: "password" },
-        },
-        async authorize(credentials) {
-          // ユーザー認証時に入力された値のチェック
-          if (!credentials.email || !credentials.password) {
-            throw new Error("メールアドレス若しくはパスワードが入力されていません。");
-          }
-          // Todo: zodのバリデーションを使う場合（クライアントと同じスキーマになるが、Serverでも対応する場合はアクティブにする）
-          // そもそも、ログイン時にはバリデーションエラーは必要ないということであれば削除。
 
-          // const validateData = LoginSchema.safeParse(credentials);
-          // if (!validateData.success) {
-          //     const errors = validateData.error.flatten();
-          //     const errorMessages: string[] = [];
-          //     for (const key in errors.fieldErrors) {
-          //         const fieldError = errors.fieldErrors[key as keyof typeof errors.fieldErrors];
-          //         if (fieldError) {
-          //             errorMessages.push(...fieldError);
-          //         }
-          //     }
-          //     return errorMessages.join("、") + "。";
-          // }
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+        session.user.role = token.role as string;
+      }
 
-          const prisma = await getPrismaClient();
-
-          // ユーザーが存在するか確認
-          const user = await prisma.user.findFirst({
-            where: {
-              email: credentials.email,
-            },
-          });
-
-          // ユーザーが存在しない場合
-          if (!user) {
-            throw new Error("ユーザーが存在しません。");
-          }
-
-          // パスワードが一致するか確認
-          const passwordMatch = await bcryptjs.compare(
-            credentials.password as string,
-            user.password as string
-          );
-
-          // パスワードが一致しない場合
-          if (!passwordMatch) {
-            throw new Error("パスワードが間違っています。");
-          }
-          return user;
-        },
-      }),
-    ],
-    theme: {
-      logo: "/mizuki_logo_transparent.jpg",
-      buttonText: "Googleでログイン",
+      console.log("SESSION CALLBACK >>>", session);
+      return session;
     },
-  };
-};
+  },
 
-const authOption = await authOptions();
+} satisfies NextAuthConfig;
 
-export default authOption satisfies NextAuthConfig;
+export default authConfig;
