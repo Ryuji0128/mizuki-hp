@@ -1,6 +1,5 @@
-import React from 'react';
-import RegisterUserMainTitle from './RegisterUserMainTitle';
 import RegisterUserContents from './RegisterUserContents';
+import RegisterUserMainTitle from './RegisterUserMainTitle';
 
 export default function RegisterUserPage() {
   return (

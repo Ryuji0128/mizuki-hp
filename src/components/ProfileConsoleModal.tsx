@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState } from "react";
-import { IconButton, Menu, MenuItem, Avatar, Typography, Box, Divider } from "@mui/material";
-import { useSession } from "next-auth/react";
-import { signOut } from "next-auth/react";
+import { Avatar, Box, Divider, IconButton, Menu, MenuItem, Typography } from "@mui/material";
+import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 
 const ProfileConsoleModal = () => {
   const { data: session, status } = useSession();
@@ -30,6 +29,7 @@ const ProfileConsoleModal = () => {
     { label: "問い合わせ管理", path: "/contact" },
     { label: "プロフィール編集", path: "/portal-admin/register-user" },
     { label: "ユーザー登録", path: "/portal-admin/register-user" },
+    { label: "ブログ投稿", path: "/portal-admin/blog" },
   ];
 
   return (

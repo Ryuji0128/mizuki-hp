@@ -25,5 +25,7 @@ jobs:
             set -e
             cd ~/mizuki-hp
             git pull origin main
+            yarn install --frozen-lockfile
+            npx prisma migrate deploy
             yarn build
             pm2 restart mizuki-hp

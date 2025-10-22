@@ -1,13 +1,13 @@
 "use client";
 
-import { Box, Typography, Button, Link, Modal, TextField } from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import dayjs, { Dayjs } from "dayjs";
+import { Box, Button, Link, Modal, TextField, Typography } from "@mui/material";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { useState, useEffect, useCallback } from "react";
-import { useSession } from "next-auth/react";
 import axios from "axios";
+import dayjs, { Dayjs } from "dayjs";
+import { useSession } from "next-auth/react";
+import { useCallback, useEffect, useState } from "react";
 // import { newsMockdata } from "@/lib/mock";
 
 interface INewsList {
@@ -458,7 +458,7 @@ const NewsSection = () => {
                       ? dayjs(editingNews.date)
                       : dayjs() // 初期値を現在の日付に設定
                   }
-                                onChange={(newDate) =>
+                  onChange={(newDate) =>
                     setEditingNews({
                       ...editingNews,
                       date: newDate ? newDate.toISOString() : editingNews.date,
