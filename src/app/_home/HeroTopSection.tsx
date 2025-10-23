@@ -67,7 +67,7 @@ const HeroTopSection: React.FC = () => {
                   backgroundColor: "rgba(0, 0, 0, 0.3)",
                 }}
               >
-                <Typography
+                {/* <Typography
                   variant="h4"
                   sx={{
                     fontWeight: "bold",
@@ -78,7 +78,7 @@ const HeroTopSection: React.FC = () => {
                   }}
                 >
                   {slide.title}
-                </Typography>
+                </Typography> */}
               </Box>
             </SwiperSlide>
           ))}

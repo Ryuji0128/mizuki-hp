@@ -1,4 +1,3 @@
-// src/app/portal-admin/blog/api/upload/route.ts
 import { mkdir, writeFile } from "fs/promises";
 import { NextResponse } from "next/server";
 import path from "path";
@@ -28,8 +27,11 @@ export async function POST(req: Request) {
         await writeFile(filePath, buffer);
         console.log("✅ ファイル保存成功:", filePath);
 
-        // URLを返す
-        const imageUrl = `/uploads/${fileName}`;
+        // ✅ ここから修正ポイント
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+        const imageUrl = `${baseUrl}/uploads/${fileName}`; // ← 絶対URLに変更！
+        // ✅ 修正ここまで
+
         return NextResponse.json({ url: imageUrl });
     } catch (error) {
         console.error("❌ アップロードエラー:", error);
