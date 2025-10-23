@@ -27,5 +27,5 @@ jobs:
             git pull origin main
             yarn install --frozen-lockfile
             npx prisma migrate deploy
-            yarn build
-            pm2 restart mizuki-hp
+            NODE_ENV=production yarn build
+            pm2 reload mizuki-hp --update-env
