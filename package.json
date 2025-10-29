@@ -1,12 +1,12 @@
 {
-  "name": "fusetsu-hp",
-  "version": "0.1.0",
-  "private": true,
+  "name": "mizuki-hp",
+  "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "yarn prisma generate && next build",
-    "postbuild": "next-sitemap",
-    "start": "next start",
+    "build": "next build && next-sitemap --config next-sitemap.config.cjs",
+    "postbuild": "next-sitemap --config next-sitemap.config.cjs",
+    "start": "NODE_ENV=production node server.js",
     "lint": "next lint"
   },
   "dependencies": {
@@ -25,11 +25,12 @@
     "@mui/x-date-pickers": "^7.26.0",
     "@next/env": "^15.1.7",
     "@prisma/client": "^6.3.1",
-    "@types/bcryptjs": "^2.4.6",
+    "@types/bcryptjs": "^3.0.0",
     "axios": "^1.7.9",
-    "bcryptjs": "^3.0.0",
+    "bcryptjs": "^3.0.2",
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.7",
+    "express": "^5.1.0",
     "framer-motion": "^12.4.3",
     "mysql2": "^3.12.0",
     "next": "15.1.7",

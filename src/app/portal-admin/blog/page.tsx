@@ -11,7 +11,7 @@ export default function AdminBlogPage() {
   // 投稿一覧を取得
   const fetchBlogs = async () => {
     try {
-      const res = await fetch("/portal-admin/blog/api");
+      const res = await fetch("/api/blog");
       if (!res.ok) throw new Error("投稿の取得に失敗しました");
       const data = await res.json();
       setBlogs(data);
@@ -31,7 +31,7 @@ export default function AdminBlogPage() {
     if (!confirm("この投稿を削除しますか？")) return;
 
     try {
-      const res = await fetch(`/portal-admin/blog/api/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/blog/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const err = await res.json();
         alert(err.error || "削除に失敗しました");
