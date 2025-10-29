@@ -9,11 +9,14 @@ on:
 
 jobs:
   deploy:
+    # develop → main のマージ時のみ実行
     if: github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'develop'
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Deploy to Production Server
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -23,9 +26,38 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             set -e
+
+            echo "🚀 Deploying Mizuki Clinic HP..."
+
+            # ディレクトリ移動
             cd ~/mizuki-hp
-            git pull origin main
+
+            # Git 更新
+            echo "🌀 Pulling latest code from main..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            # 依存関係更新
+            echo "📦 Installing dependencies..."
             yarn install --frozen-lockfile
+
+            # DBマイグレーション（必要ならバックアップしてから）
+            echo "🧩 Running Prisma migrations..."
             npx prisma migrate deploy
+
+            # Next.js ビルド
+            echo "🏗 Building Next.js app..."
             NODE_ENV=production yarn build
-            pm2 reload mizuki-hp --update-env
+
+            # PM2 再起動（存在しなければ start）
+            echo "🔁 Restarting application with PM2..."
+            if pm2 list | grep -q "mizuki-hp"; then
+              pm2 reload mizuki-hp --update-env
+            else
+              pm2 start "yarn start" --name mizuki-hp
+            fi
+
+            # PM2永続化（再起動対策）
+            pm2 save
+
+            echo "✅ Deployment completed successfully!"
