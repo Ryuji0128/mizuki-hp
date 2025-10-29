@@ -34,7 +34,7 @@ export default function NewBlogPage() {
                 const formData = new FormData();
                 formData.append("file", imageFile);
 
-                const uploadRes = await fetch("/portal-admin/blog/api/upload", {
+                const uploadRes = await fetch("/api/admin/upload", {
                     method: "POST",
                     body: formData,
                 });
@@ -48,7 +48,7 @@ export default function NewBlogPage() {
             }
 
             // ✅ 本文データを送信
-            const res = await fetch("/portal-admin/blog/api", {
+            const res = await fetch("/api/blog", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ title, content, imageUrl }),

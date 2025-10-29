@@ -14,7 +14,7 @@ export default function EditBlogPage() {
 
     useEffect(() => {
         const fetchBlog = async () => {
-            const res = await fetch(`/portal-admin/blog/api/${id}`);
+            const res = await fetch(`/api/blog/${id}`);
             const data = await res.json();
             setBlog(data);
             setTitle(data.title);
@@ -33,7 +33,7 @@ export default function EditBlogPage() {
         const formData = new FormData();
         formData.append("file", file);
 
-        const res = await fetch("/portal-admin/blog/api/upload", {
+        const res = await fetch("/api/admin/upload", {
             method: "POST",
             body: formData,
         });
@@ -50,7 +50,7 @@ export default function EditBlogPage() {
 
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
-        const res = await fetch(`/portal-admin/blog/api/${id}`, {
+        const res = await fetch(`/api/blog/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ title, content, imageUrl }), // ← imageUrlを追加

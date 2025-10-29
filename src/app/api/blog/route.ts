@@ -1,39 +1,12 @@
-import { PrismaClient } from "@prisma/client";
+import { auth } from "@/auth";
+import { getPrismaClient } from "@/lib/db";
 import { NextResponse } from "next/server";
 
-const prisma = new PrismaClient();
+const prisma = getPrismaClient();
 
-// ブログ投稿 API
-export async function POST(req: Request) {
-    try {
-        const { title, content, imageUrl } = await req.json();
-
-        if (!title || !content) {
-            return NextResponse.json(
-                { error: "タイトルと本文は必須です" },
-                { status: 400 }
-            );
-        }
-
-        const newBlog = await prisma.blog.create({
-            data: {
-                title,
-                content,
-                imageUrl: imageUrl || null,
-            },
-        });
-
-        return NextResponse.json({ success: true, blog: newBlog });
-    } catch (error) {
-        console.error("ブログ投稿エラー:", error);
-        return NextResponse.json(
-            { success: false, error: "サーバーエラーが発生しました" },
-            { status: 500 }
-        );
-    }
-}
-
-// ブログ一覧取得 API（一覧表示用）
+// =====================
+// 🟢 一覧取得 (GET)
+// =====================
 export async function GET() {
     try {
         const blogs = await prisma.blog.findMany({
@@ -41,10 +14,37 @@ export async function GET() {
         });
         return NextResponse.json(blogs);
     } catch (error) {
-        console.error("ブログ一覧取得エラー:", error);
-        return NextResponse.json(
-            { success: false, error: "取得に失敗しました" },
-            { status: 500 }
-        );
+        console.error("GETエラー:", error);
+        return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
+    }
+}
+
+// =====================
+// 🟡 投稿作成 (POST)
+// =====================
+export async function POST(request: Request) {
+    const session = await auth();
+
+    if (!session?.user?.email) {
+        return NextResponse.json({ error: "未ログインです" }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { role: true },
+    });
+
+    if (!user || user.role !== "ADMIN") {
+        return NextResponse.json({ error: "権限がありません" }, { status: 403 });
+    }
+
+    const data = await request.json();
+
+    try {
+        const newBlog = await prisma.blog.create({ data });
+        return NextResponse.json(newBlog);
+    } catch (error) {
+        console.error("作成エラー:", error);
+        return NextResponse.json({ error: "作成に失敗しました" }, { status: 500 });
     }
 }

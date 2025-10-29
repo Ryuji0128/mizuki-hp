@@ -11,27 +11,21 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "ファイルがありません" }, { status: 400 });
         }
 
-        // ファイルをバッファに変換
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        // 保存先ディレクトリ
+        // ✅ 保存先: public/uploads （public直下）
         const uploadDir = path.join(process.cwd(), "public", "uploads");
         await mkdir(uploadDir, { recursive: true });
 
-        // ユニークなファイル名
         const fileName = `${Date.now()}-${file.name}`;
         const filePath = path.join(uploadDir, fileName);
-
-        // 保存
         await writeFile(filePath, buffer);
+
         console.log("✅ ファイル保存成功:", filePath);
 
-        // ✅ ここから修正ポイント
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-        const imageUrl = `${baseUrl}/uploads/${fileName}`; // ← 絶対URLに変更！
-        // ✅ 修正ここまで
-
+        // ✅ 返却するURLは「/uploads/...」でOK（public配下なので）
+        const imageUrl = `/uploads/${fileName}`;
         return NextResponse.json({ url: imageUrl });
     } catch (error) {
         console.error("❌ アップロードエラー:", error);

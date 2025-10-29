@@ -6,10 +6,6 @@
       "dom.iterable",
       "esnext"
     ],
-    "typeRoots": [
-      "./node_modules/@types",
-      "./src/types"
-    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -20,25 +16,23 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    // CSS in JSのための設定。エラー発生中のため、コメントアウト。@jsxImportSourceにより対応中。
-    // "jsxImportSource": "@emotion/react", // JSX Pragmaを設定
-    // "types": ["@emotion/react/types/css-prop"], // Emotionの型定義ファイルを設定
     "incremental": true,
     "plugins": [
       {
         "name": "next"
       }
     ],
+    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "./src/*"
+        "src/*"
       ]
     }
   },
   "include": [
     "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
     ".next/types/**/*.ts"
   ],
   "exclude": [
