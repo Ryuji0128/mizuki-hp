@@ -35,11 +35,11 @@ jobs:
             git reset --hard origin/main
 
             echo "🐳 Building & starting containers..."
-            docker-compose pull
-            docker-compose build
-            docker-compose up -d
+            docker compose pull
+            docker compose build
+            docker compose up -d
 
             echo "🧩 Running Prisma migrations..."
-            docker-compose exec -T next_app npx prisma migrate deploy
+            docker compose exec -T next_app npx prisma migrate deploy
 
             echo "✅ Deployment completed successfully!"
