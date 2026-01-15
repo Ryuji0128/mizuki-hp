@@ -41,6 +41,19 @@ yarn-error.log*
 next-env.d.ts
 
 # sitemap
-/public/sitemap*
-/public/robots.txt
-/public/uploads
+next/public/sitemap*
+next/public/robots.txt
+next/public/uploads
+
+# dependencies
+node_modules/
+**/node_modules/
+
+# next.js
+.next/
+
+# yarn
+.yarn-integrity
+
+# mysql
+mysql/data/
