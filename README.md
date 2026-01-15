@@ -1,6 +1,6 @@
 <div align="center">
 
-# SETA HP（みずきクリニック ホームページ）
+# SETA HP（みずきクリニック ホームページ_test）
 
 </div>
 <br>
