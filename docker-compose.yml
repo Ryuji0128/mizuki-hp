@@ -8,6 +8,8 @@ services:
       - ./next/.env
     environment:
       - DATABASE_URL=mysql://app_user:${MYSQL_PASSWORD:-app_pass}@mysql:3306/app_db
+      - NEXTAUTH_URL=https://mizuki-clinic.online
+      - NEXTAUTH_TRUST_HOST=true
     depends_on:
       - mysql
     restart: unless-stopped
