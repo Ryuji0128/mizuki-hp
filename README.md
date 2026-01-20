@@ -47,6 +47,65 @@
 
 ## 使用方法
 
+### Docker環境での開発（推奨）
+
+Docker Composeを使用して、Next.js、MySQL、Nginxを含む開発環境を構築できます。
+
+1. 環境変数ファイルを配置
+
+   ```bash
+   # プロジェクト管理者から取得した.envファイルをnext/ディレクトリに配置
+   cp .env ./next/.env
+   ```
+
+2. Docker Composeで環境を起動
+
+   ```bash
+   docker compose up -d
+   ```
+
+3. ブラウザで以下のURLにアクセス
+
+   ```
+   http://localhost:80    # Nginx経由
+   http://localhost:2999  # Next.js直接
+   ```
+
+4. コンテナの停止
+
+   ```bash
+   docker compose down
+   ```
+
+5. ログの確認
+
+   ```bash
+   # 全コンテナのログ
+   docker compose logs -f
+
+   # 特定のコンテナのログ
+   docker compose logs -f next
+   ```
+
+#### Docker環境の構成
+
+| サービス | コンテナ名 | ポート | 説明 |
+|---------|-----------|--------|------|
+| next | next_app | 2999:3000 | Next.jsアプリケーション |
+| mysql | mysql_db | - | MySQL 8.0 データベース |
+| nginx | nginx_proxy | 80:80 | リバースプロキシ |
+
+#### MySQLへの接続情報（Docker環境）
+
+- ホスト: `mysql` (コンテナ内) / `localhost` (ホストから)
+- データベース: `app_db`
+- ユーザー: `app_user`
+- パスワード: `app_pass`
+
+---
+
+### ローカル環境での開発（GCP連携）
+
 1. アプリ内にてGoogleSDKを使用するため、以下を実行（事前に、各ユーザー毎Google CLIの利用設定が必要：[参考](./gcloud-SDK-usage.md)）:
 
    ```bash
