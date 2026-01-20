@@ -2,12 +2,12 @@
 
 import { googleAuthenticate } from "@/actions/google-login";
 import { useActionState } from "react";
-import { BsGoogle } from "react-icons/bs";
-import { Box, Button, Typography } from "@mui/material";
+import { Box, Button, Alert } from "@mui/material";
+import GoogleIcon from "@mui/icons-material/Google";
 
 const GoogleLogin = () => {
-  
   const [errorMsgGoogle, dispatchGoogle] = useActionState(googleAuthenticate, undefined);
+
   return (
     <Box
       component="form"
@@ -16,9 +16,8 @@ const GoogleLogin = () => {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        width: "100%", // 幅を100%に
-        marginTop: 3, // `mt-4` の代替
-        gap: 2, // 各要素の間隔を均等に
+        width: "100%",
+        gap: 2,
       }}
       action={dispatchGoogle}
     >
@@ -26,18 +25,29 @@ const GoogleLogin = () => {
         type="submit"
         variant="outlined"
         fullWidth
+        startIcon={<GoogleIcon />}
         sx={{
-          textTransform: "capitalize", // 最初の文字大文字、それ以降小文字
-          color: "black", // 黒い文字色
-          borderColor: "black", // 黒いボーダー
           height: 50,
-          fontSize: "1rem", // フォントサイズを1.25remに
+          fontSize: "1rem",
+          fontWeight: 500,
+          color: "#444",
+          borderColor: "#ddd",
+          borderRadius: 2,
+          backgroundColor: "#fff",
+          "&:hover": {
+            backgroundColor: "#f5f5f5",
+            borderColor: "#ccc",
+          },
         }}
       >
-        <BsGoogle />
-        　Googleログイン
+        Googleでログイン
       </Button>
-      <Typography>{errorMsgGoogle?.messages.join(", ")}</Typography>
+
+      {errorMsgGoogle?.messages && errorMsgGoogle.messages.length > 0 && (
+        <Alert severity="error" sx={{ width: "100%" }}>
+          {errorMsgGoogle.messages.join(", ")}
+        </Alert>
+      )}
     </Box>
   );
 };

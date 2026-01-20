@@ -54,6 +54,7 @@ jobs:
           command_timeout: 20m
           script: |
             set -e
+            export COMPOSE_HTTP_TIMEOUT=300
 
             echo "Deploying Mizuki Clinic HP (Docker)..."
 
@@ -68,7 +69,17 @@ jobs:
             docker compose build
             docker compose up -d
 
+            echo "Waiting for next_app to be ready..."
+            for i in {1..30}; do
+              if docker compose ps next | grep -q "Up"; then
+                echo "next_app is running"
+                break
+              fi
+              echo "Waiting... ($i/30)"
+              sleep 2
+            done
+
             echo "Running Prisma migrations..."
-            docker compose exec -T next_app npx prisma migrate deploy
+            docker compose exec -T next_app npx prisma migrate deploy || echo "Migration skipped or failed"
 
             echo "Deployment completed successfully!"

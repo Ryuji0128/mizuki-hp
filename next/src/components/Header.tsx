@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import ProfileConsoleModal from "@/components/ProfileConsoleModal";
 import { useSimpleBar } from "@/components/SimpleBarWrapper";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -27,7 +28,6 @@ export default function Header() {
 
   const theme = useTheme();
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { scrollContainerRef } = useSimpleBar();
 
   useEffect(() => {
@@ -108,8 +108,8 @@ export default function Header() {
             </Link>
           </Box>
 
-          {/* 右側：PC⇔モバイル切り替え */}
-          {isMobile ? (
+          {/* 右側：PC⇔タブレット/モバイル切り替え */}
+          {isTablet ? (
             <>
               {/* ハンバーガーアイコン */}
               <IconButton

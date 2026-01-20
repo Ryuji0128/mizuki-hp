@@ -1,10 +1,26 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoginSchema } from "@/lib/validation";
-import { Typography, TextField, Button, Box, Divider, Link } from "@mui/material";
+import {
+  Typography,
+  TextField,
+  Button,
+  Box,
+  Divider,
+  Link,
+  InputAdornment,
+  IconButton,
+  Alert,
+} from "@mui/material";
+import {
+  Email as EmailIcon,
+  Lock as LockIcon,
+  Visibility,
+  VisibilityOff,
+} from "@mui/icons-material";
 import { signIn } from "next-auth/react";
 
 type LoginFormValues = {
@@ -13,6 +29,9 @@ type LoginFormValues = {
 };
 
 export default function CredentialsLoginForm() {
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const {
     control,
     handleSubmit,
@@ -21,22 +40,24 @@ export default function CredentialsLoginForm() {
     resolver: zodResolver(LoginSchema),
   });
 
+  const handleClickShowPassword = () => setShowPassword(!showPassword);
+
   const onSubmit = async (data: LoginFormValues) => {
     const { email, password } = data;
+    setErrorMessage(null);
     try {
       const result = await signIn("credentials", {
         redirect: false,
-        // redirectTo: "/",
         email,
         password,
       });
       if (!result?.error) {
         window.location.href = "/";
       } else {
-        throw new Error("ログインに失敗しました。パスワードとメールアドレスを確認してください。");
+        setErrorMessage("メールアドレスまたはパスワードが正しくありません。");
       }
-    } catch (error) {
-      alert(error);
+    } catch {
+      setErrorMessage("ログイン中にエラーが発生しました。もう一度お試しください。");
     }
   };
 
@@ -44,12 +65,18 @@ export default function CredentialsLoginForm() {
     <Box
       width="100%"
       maxWidth={400}
-      sx={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+      sx={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}
       component="form"
-      action="submit"
       onSubmit={handleSubmit(onSubmit)}
     >
-      {/* Email Field */}
+      {/* エラーメッセージ */}
+      {errorMessage && (
+        <Alert severity="error" sx={{ mb: 1 }}>
+          {errorMessage}
+        </Alert>
+      )}
+
+      {/* メールアドレス */}
       <Controller
         name="email"
         control={control}
@@ -57,15 +84,23 @@ export default function CredentialsLoginForm() {
         render={({ field }) => (
           <TextField
             {...field}
-            label="Email"
+            label="メールアドレス"
+            placeholder="example@email.com"
             fullWidth
             error={!!errors.email}
             helperText={errors.email?.message}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <EmailIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
           />
         )}
       />
 
-      {/* Password Field */}
+      {/* パスワード */}
       <Controller
         name="password"
         control={control}
@@ -73,43 +108,72 @@ export default function CredentialsLoginForm() {
         render={({ field }) => (
           <TextField
             {...field}
-            label="Password"
-            type="password"
+            label="パスワード"
+            placeholder="パスワードを入力"
+            type={showPassword ? "text" : "password"}
             fullWidth
             error={!!errors.password}
             helperText={errors.password?.message}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <LockIcon color="action" />
+                </InputAdornment>
+              ),
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="パスワードの表示切替"
+                    onClick={handleClickShowPassword}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
         )}
       />
 
-      {/* LOGIN ボタン */}
+      {/* ログインボタン */}
       <Button
         type="submit"
         variant="contained"
         fullWidth
         sx={{
           height: 50,
-          textTransform: "capitalize", // 最初の文字大文字、それ以降小文字
-          fontSize: "1rem", // フォントサイズを1remに
+          fontSize: "1rem",
+          fontWeight: 600,
+          mt: 1,
+          borderRadius: 2,
+          boxShadow: "0 4px 12px rgba(25, 118, 210, 0.3)",
+          "&:hover": {
+            boxShadow: "0 6px 16px rgba(25, 118, 210, 0.4)",
+          },
         }}
         disabled={isSubmitting}
       >
-        {isSubmitting ? "Logging in..." : "ログイン"}
+        {isSubmitting ? "ログイン中..." : "ログイン"}
       </Button>
 
       {/* ユーザー登録リンク */}
-      <Typography variant="body2" sx={{ marginTop: "1rem", textAlign: "center" }}>
-        ユーザー登録がまだの方は{" "}
+      <Typography variant="body2" sx={{ mt: 1, textAlign: "center", color: "text.secondary" }}>
+        アカウントをお持ちでない方は{" "}
         <Link
           href="/portal-admin/register-user"
-          sx={{ textDecoration: "none", fontWeight: "bold" }}
+          sx={{ textDecoration: "none", fontWeight: "bold", color: "primary.main" }}
         >
-          こちら
+          新規登録
         </Link>
       </Typography>
 
-      {/* OR Divider：中央線はClientでのみ表現される（SSRは不可）ため、本コンポーネントで実装 */}
-      <Divider>OR</Divider>
+      {/* OR Divider */}
+      <Divider sx={{ my: 1 }}>
+        <Typography variant="body2" color="text.secondary">
+          または
+        </Typography>
+      </Divider>
     </Box>
   );
 }
