@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  test:
     if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'develop')
     runs-on: ubuntu-latest
 
@@ -16,6 +16,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+          cache-dependency-path: next/yarn.lock
+
+      - name: Install dependencies
+        working-directory: ./next
+        run: yarn install --frozen-lockfile
+
+      - name: Run lint
+        working-directory: ./next
+        run: yarn lint
+
+      - name: Run build
+        working-directory: ./next
+        run: yarn build
+        env:
+          AUTH_SECRET: test-secret
+          NEXTAUTH_URL: http://localhost:3000
+          DATABASE_URL: mysql://test:test@localhost:3306/test
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Deploy to Production Server
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -23,23 +51,24 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_SECRET_KEY }}
           port: ${{ secrets.SSH_PORT }}
+          command_timeout: 20m
           script: |
             set -e
 
-            echo "🚀 Deploying Mizuki Clinic HP (Docker)..."
+            echo "Deploying Mizuki Clinic HP (Docker)..."
 
             cd ~/mizuki-hp
 
-            echo "🌀 Pulling latest code..."
+            echo "Pulling latest code..."
             git fetch origin main
             git reset --hard origin/main
 
-            echo "🐳 Building & starting containers..."
+            echo "Building & starting containers..."
             docker compose pull
             docker compose build
             docker compose up -d
 
-            echo "🧩 Running Prisma migrations..."
+            echo "Running Prisma migrations..."
             docker compose exec -T next_app npx prisma migrate deploy
 
-            echo "✅ Deployment completed successfully!"
+            echo "Deployment completed successfully!"
