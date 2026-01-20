@@ -1,11 +1,10 @@
-version: "3.9"
-
 services:
   next:
     build: ./next
     container_name: next_app
     volumes:
       - ./next:/app
+      - /app/node_modules
     ports:
       - "2999:3000"
     env_file:
