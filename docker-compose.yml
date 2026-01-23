@@ -1,6 +1,6 @@
 services:
   next:
-    image: ghcr.io/ryuji0128/mizuki-hp:latest 
+    image: ghcr.io/ryuji0128/mizuki-hp:latest
     container_name: next_app
     ports:
       - "2999:3000"

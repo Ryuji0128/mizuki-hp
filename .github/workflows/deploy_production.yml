@@ -82,7 +82,7 @@ jobs:
           script: |
             set -e
 
-            echo "Deploying mizuki-HP..."
+            echo "Deploying mizuki-hp..."
 
             cd ~/mizuki-hp
 
