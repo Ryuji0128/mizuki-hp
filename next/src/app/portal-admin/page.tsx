@@ -4,10 +4,10 @@ import Link from "next/link";
 
 const menuItems = [
   {
-    label: "ブログ投稿",
-    description: "ブログ記事の作成・編集・削除",
+    label: "俳句投稿",
+    description: "俳句の作成・編集・削除",
     path: "/portal-admin/blog",
-    icon: "📝",
+    icon: "🖊️",
   },
   {
     label: "お問い合わせ一覧",

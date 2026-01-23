@@ -10,6 +10,7 @@ export default function EditBlogPage() {
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [imageUrl, setImageUrl] = useState<string | null>(null);
+    const [imagePosition, setImagePosition] = useState("center");
     const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
@@ -19,7 +20,8 @@ export default function EditBlogPage() {
             setBlog(data);
             setTitle(data.title);
             setContent(data.content);
-            setImageUrl(data.imageUrl || null); // ← 追加
+            setImageUrl(data.imageUrl || null);
+            setImagePosition(data.imagePosition || "center");
         };
         fetchBlog();
     }, [id]);
@@ -53,7 +55,7 @@ export default function EditBlogPage() {
         const res = await fetch(`/api/blog/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title, content, imageUrl }), // ← imageUrlを追加
+            body: JSON.stringify({ title, content, imageUrl, imagePosition }),
         });
         if (res.ok) router.push("/portal-admin/blog");
         else alert("更新に失敗しました");
@@ -61,7 +63,7 @@ export default function EditBlogPage() {
 
     return (
         <main className="max-w-2xl mx-auto p-6">
-            <h1 className="text-2xl font-bold mb-6">✏️ ブログ編集</h1>
+            <h1 className="text-2xl font-bold mb-6">✏️ 俳句編集</h1>
 
             {blog ? (
                 <form onSubmit={handleUpdate} className="space-y-5 bg-white p-6 rounded-2xl shadow-md">
@@ -77,15 +79,34 @@ export default function EditBlogPage() {
                         className="w-full border p-3 rounded-md min-h-[150px]"
                     />
 
-                    {/* 🖼️ ここを追加：画像アップロード */}
+                    {/* 🖼️ 画像アップロード */}
                     <div>
                         <label className="font-semibold block mb-2">📸 サムネイル画像</label>
                         {imageUrl && (
-                            <img
-                                src={imageUrl}
-                                alt="現在の画像"
-                                className="w-48 h-32 object-cover rounded-md border mb-3"
-                            />
+                            <div>
+                                <div className="relative w-full h-48 rounded-md border overflow-hidden mb-3">
+                                    <img
+                                        src={imageUrl}
+                                        alt="現在の画像"
+                                        className="w-full h-full object-cover"
+                                        style={{ objectPosition: imagePosition }}
+                                    />
+                                </div>
+                                <label className="block text-gray-700 mb-1 text-sm font-semibold">
+                                    表示位置
+                                </label>
+                                <select
+                                    value={imagePosition}
+                                    onChange={(e) => setImagePosition(e.target.value)}
+                                    className="border p-2 rounded-md mb-3"
+                                >
+                                    <option value="top">上</option>
+                                    <option value="center">中央</option>
+                                    <option value="bottom">下</option>
+                                    <option value="left">左</option>
+                                    <option value="right">右</option>
+                                </select>
+                            </div>
                         )}
                         <input type="file" accept="image/*" onChange={handleImageUpload} />
                         {uploading && <p className="text-sm text-gray-500 mt-1">アップロード中...</p>}

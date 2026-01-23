@@ -9,6 +9,7 @@ export default function NewBlogPage() {
     const [content, setContent] = useState("");
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [imagePosition, setImagePosition] = useState("center");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -51,7 +52,7 @@ export default function NewBlogPage() {
             const res = await fetch("/api/blog", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, content, imageUrl }),
+                body: JSON.stringify({ title, content, imageUrl, imagePosition }),
             });
 
             if (!res.ok) {
@@ -69,7 +70,7 @@ export default function NewBlogPage() {
 
     return (
         <main className="max-w-2xl mx-auto p-6">
-            <h1 className="text-2xl font-bold mb-6">📝 新規ブログ投稿</h1>
+            <h1 className="text-2xl font-bold mb-6">🖊️ 新規俳句投稿</h1>
 
             <form
                 onSubmit={handleSubmit}
@@ -112,11 +113,30 @@ export default function NewBlogPage() {
                         className="w-full border p-2 rounded-md"
                     />
                     {previewUrl && (
-                        <img
-                            src={previewUrl}
-                            alt="プレビュー"
-                            className="mt-4 rounded-lg shadow-md max-h-60 object-cover"
-                        />
+                        <div className="mt-4">
+                            <div className="relative w-full h-60 rounded-lg shadow-md overflow-hidden border">
+                                <img
+                                    src={previewUrl}
+                                    alt="プレビュー"
+                                    className="w-full h-full object-cover"
+                                    style={{ objectPosition: imagePosition }}
+                                />
+                            </div>
+                            <label className="block text-gray-700 mt-3 mb-1 text-sm font-semibold">
+                                表示位置
+                            </label>
+                            <select
+                                value={imagePosition}
+                                onChange={(e) => setImagePosition(e.target.value)}
+                                className="border p-2 rounded-md"
+                            >
+                                <option value="top">上</option>
+                                <option value="center">中央</option>
+                                <option value="bottom">下</option>
+                                <option value="left">左</option>
+                                <option value="right">右</option>
+                            </select>
+                        </div>
                     )}
                 </div>
 

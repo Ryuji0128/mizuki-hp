@@ -34,103 +34,140 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
     }, {});
     const archives = Object.entries(archiveMap) as [string, number][]; // ←これを追加！
     return (
-        <main className="max-w-7xl mx-auto px-6 py-16 bg-[#faf8f6] min-h-screen font-['Yuji_Syuku'] grid lg:grid-cols-[2fr_1fr] gap-10">
-            {/* 左側：ブログ一覧 */}
-            <div>
-                <h1 className="text-4xl font-bold text-gray-800 mb-14 text-center tracking-widest">
-                    ✿ 院長俳句展 ✿
+        <main className="min-h-screen font-['Yuji_Syuku']" style={{ background: "linear-gradient(180deg, #f7f3eb 0%, #ede8df 100%)" }}>
+            {/* ヘッダー装飾 */}
+            <div className="text-center pt-16 pb-10">
+                <p className="text-sm text-gray-500 tracking-[0.5em] mb-2">── 季節のことば ──</p>
+                <h1 className="text-4xl md:text-5xl font-bold text-gray-800 tracking-[0.3em]">
+                    院長俳句展
                 </h1>
+                <div className="mt-4 flex justify-center items-center gap-3">
+                    <span className="block w-16 h-px bg-gray-400"></span>
+                    <span className="text-gray-400 text-lg">✿</span>
+                    <span className="block w-16 h-px bg-gray-400"></span>
+                </div>
+            </div>
 
-                <div className="grid gap-14 sm:grid-cols-2">
+            <div className="max-w-6xl mx-auto px-6 pb-16 grid lg:grid-cols-[1fr_240px] gap-10">
+                {/* 俳句カード一覧 */}
+                <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
                     {currentBlogs.map((blog: any) => (
                         <div
                             key={blog.id}
-                            className="block bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-500 ease-out"
+                            className="group relative overflow-hidden rounded-sm shadow-md hover:shadow-xl transition-all duration-500"
+                            style={{ background: "linear-gradient(180deg, #fffef9 0%, #f5f0e6 100%)" }}
                         >
+                            {/* 短冊風の上ライン */}
+                            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-700 via-green-600 to-green-800"></div>
+
                             {blog.imageUrl && (
-                                <div className="relative w-full h-[300px] overflow-hidden">
+                                <div className="relative w-full aspect-[4/3] overflow-hidden">
                                     <Image
                                         src={blog.imageUrl}
                                         alt={blog.title}
-                                        width={800}
-                                        height={500}
-                                        className="object-cover w-full h-full transition-transform duration-700 ease-in-out hover:scale-105"
+                                        fill
+                                        sizes="(max-width: 768px) 100vw, 33vw"
+                                        className="object-cover"
+                                        style={{ objectPosition: blog.imagePosition || "center" }}
                                     />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                                 </div>
                             )}
-                            <div className="p-6 space-y-4">
-                                <h2 className="text-xl text-gray-800 font-semibold border-b pb-2">{blog.title}</h2>
-                                <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
-                                    {blog.content}
-                                </p>
-                                <div className="text-right pt-3 text-gray-400 text-sm">
-                                    🗓 {new Date(blog.createdAt).toLocaleDateString("ja-JP")}
+
+                            {/* 縦書きエリア */}
+                            <div className="flex flex-col items-center py-6 px-3">
+                                <div className="flex gap-4 h-[220px]">
+                                    {/* 左：本文（縦書き・太字） */}
+                                    {blog.content && (
+                                        <p
+                                            className="text-base text-gray-800 font-bold leading-relaxed"
+                                            style={{ writingMode: "vertical-rl" }}
+                                        >
+                                            {blog.content}
+                                        </p>
+                                    )}
+
+                                    {/* 右：タイトル（縦書き・通常） */}
+                                    <h2
+                                        className="text-lg text-gray-600 font-normal leading-relaxed"
+                                        style={{ writingMode: "vertical-rl" }}
+                                    >
+                                        {blog.title}
+                                    </h2>
+                                </div>
+
+                                {/* 日付（横書き） */}
+                                <div className="mt-3 text-xs text-gray-400">
+                                    {new Date(blog.createdAt).toLocaleDateString("ja-JP")}
                                 </div>
                             </div>
                         </div>
                     ))}
                 </div>
 
-                {/* --- ページネーション --- */}
-                {totalPages > 1 && (
-                    <div className="flex justify-center items-center mt-10 gap-2 text-gray-700 font-['Yuji_Syuku']">
-                        {currentPage > 1 && (
-                            <Link
-                                href={`/blog?page=${currentPage - 1}`}
-                                className="px-4 py-2 border rounded-md hover:bg-gray-100 transition"
-                            >
-                                ← 前へ
-                            </Link>
-                        )}
-
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                            <Link
-                                key={page}
-                                href={`/blog?page=${page}`}
-                                className={`px-4 py-2 border rounded-md ${page === currentPage
-                                    ? "bg-green-700 text-white border-green-700"
-                                    : "hover:bg-gray-100"
-                                    }`}
-                            >
-                                {page}
-                            </Link>
-                        ))}
-
-                        {currentPage < totalPages && (
-                            <Link
-                                href={`/blog?page=${currentPage + 1}`}
-                                className="px-4 py-2 border rounded-md hover:bg-gray-100 transition"
-                            >
-                                次へ →
-                            </Link>
-                        )}
+                {/* 右側：アーカイブ */}
+                <aside className="h-fit sticky top-6">
+                    <div className="rounded-sm p-5 shadow-sm border border-gray-200" style={{ background: "#fffef9" }}>
+                        <h2 className="text-center text-sm font-semibold text-gray-600 tracking-[0.3em] mb-4 pb-2 border-b border-gray-200">
+                            句 集
+                        </h2>
+                        <ul className="space-y-2 text-sm">
+                            {archives.map(([key, count]) => {
+                                const match = key.match(/(\d+)年(\d+)月/);
+                                const year = match?.[1];
+                                const month = match?.[2];
+                                return (
+                                    <li key={key}>
+                                        <Link
+                                            href={`/blog/${year}/${month}`}
+                                            className="flex justify-between items-center text-gray-600 hover:text-green-800 transition py-1 px-2 rounded hover:bg-green-50"
+                                        >
+                                            <span className="tracking-wider">{key}</span>
+                                            <span className="text-xs text-gray-400">({count}句)</span>
+                                        </Link>
+                                    </li>
+                                );
+                            })}
+                        </ul>
                     </div>
-                )}
+                </aside>
             </div>
 
-            {/* 右側：アーカイブ */}
-            <aside className="bg-white border border-gray-200 rounded-xl p-4 h-fit shadow-sm">
-                <h2 className="text-center bg-gray-200 rounded-md py-2 font-semibold text-gray-700 mb-4">
-                    アーカイブ
-                </h2>
-                <ul className="space-y-1 text-sm">
-                    {archives.map(([key, count]) => {
-                        const match = key.match(/(\d+)年(\d+)月/);
-                        const year = match?.[1];
-                        const month = match?.[2];
-                        return (
-                            <li key={key}>
-                                <Link
-                                    href={`/blog/${year}/${month}`}
-                                    className="text-gray-700 hover:text-green-700 transition"
-                                >
-                                    {key}（{count}）
-                                </Link>
-                            </li>
-                        );
-                    })}
-                </ul>
-            </aside>
+            {/* ページネーション */}
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center pb-16 gap-2 text-gray-700 font-['Yuji_Syuku']">
+                    {currentPage > 1 && (
+                        <Link
+                            href={`/blog?page=${currentPage - 1}`}
+                            className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-white transition"
+                        >
+                            前へ
+                        </Link>
+                    )}
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <Link
+                            key={page}
+                            href={`/blog?page=${page}`}
+                            className={`px-4 py-2 text-sm border rounded ${page === currentPage
+                                ? "bg-green-800 text-white border-green-800"
+                                : "border-gray-300 hover:bg-white"
+                                }`}
+                        >
+                            {page}
+                        </Link>
+                    ))}
+
+                    {currentPage < totalPages && (
+                        <Link
+                            href={`/blog?page=${currentPage + 1}`}
+                            className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-white transition"
+                        >
+                            次へ
+                        </Link>
+                    )}
+                </div>
+            )}
         </main>
     );
 }

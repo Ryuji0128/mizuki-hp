@@ -84,12 +84,13 @@ model Account {
 }
 
 model Blog {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  title     String
-  content   String
-  imageUrl  String?
+  id            Int      @id @default(autoincrement())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  title         String
+  content       String
+  imageUrl      String?
+  imagePosition String   @default("center")
 }
 
 model Session {
