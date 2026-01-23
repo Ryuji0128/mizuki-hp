@@ -82,9 +82,9 @@ jobs:
           script: |
             set -e
 
-            echo "Deploying Seta-HP..."
+            echo "Deploying mizuki-HP..."
 
-            cd ~/seta-hp
+            cd ~/mizuki-hp
 
             echo "Pulling latest code..."
             git fetch origin main
