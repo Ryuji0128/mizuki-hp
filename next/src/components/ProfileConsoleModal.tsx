@@ -25,10 +25,8 @@ const ProfileConsoleModal = () => {
   };
 
   const menuItems = [
-    { label: "お知らせ管理", path: "/news" },
-    { label: "問い合わせ管理", path: "/contact" },
-    { label: "プロフィール編集", path: "/portal-admin/register-user" },
-    { label: "ユーザー登録", path: "/portal-admin/register-user" },
+    { label: "お知らせ管理", path: "/portal-admin/news" },
+    { label: "問い合わせ管理", path: "/portal-admin/inquiry" },
     { label: "ブログ投稿", path: "/portal-admin/blog" },
   ];
 

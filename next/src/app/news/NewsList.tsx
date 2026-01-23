@@ -82,20 +82,17 @@ const NewsSection = () => {
   }, [fetchNews]);
 
   useEffect(() => {
-    if (status === "authenticated") {
-      const fetchUser = async () => {
-        try {
-          const response = await axios.get(
-            `/api/user?email=${encodeURIComponent(session?.user?.email ?? "")}`
-          );
-          setUser(response.data.users[0]);
-        } catch (error) {
-          console.error("Failed to fetch user:", error);
-        }
-      };
-      fetchUser();
+    if (status === "authenticated" && session?.user) {
+      setUser({
+        id: 0,
+        name: session.user.name || "",
+        email: session.user.email || "",
+        provider: null,
+        image: session.user.image || null,
+        role: (session.user as any).role || "VIEWER",
+      });
     }
-  }, [status, session?.user?.email]);
+  }, [status, session]);
 
   // ニュースを削除
   const deleteNews = async () => {
@@ -276,16 +273,19 @@ const NewsSection = () => {
             <Typography variant="body1" sx={{ fontWeight: "bold", marginBottom: 2 }}>
               {news.title}
             </Typography>
-            {news.contents.map((content, contentIndex) => (
-              <Typography
-                key={contentIndex}
-                variant="body2"
-                color="textSecondary"
-                sx={{ marginBottom: 1 }}
-              >
-                {content.trim() === "" ? <br /> : content}
-              </Typography>
-            ))}
+            {news.contents.map((content, contentIndex) => {
+              const text = typeof content === "string" ? content : (content as any)?.value || "";
+              return (
+                <Typography
+                  key={contentIndex}
+                  variant="body2"
+                  color="textSecondary"
+                  sx={{ marginBottom: 1 }}
+                >
+                  {text.trim() === "" ? <br /> : text}
+                </Typography>
+              );
+            })}
             {news.url && (
               <Link href={news.url} target="_blank" rel="noopener" fontSize={14}>
                 詳細を見る

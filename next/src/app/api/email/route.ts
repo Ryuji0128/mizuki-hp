@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import { getPrismaClient } from "@/lib/db";
 import { validateInquiry } from "@/lib/validation";
 import { NextRequest, NextResponse } from "next/server";
@@ -6,9 +7,6 @@ import xss from "xss";
 
 const prisma = getPrismaClient();
 
-/**
- * ✅ 問い合わせ登録（メール送信 + DB保存）
- */
 export async function POST(req: NextRequest) {
   try {
     const inquiryData = await req.json();
@@ -99,10 +97,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/**
- * ✅ 問い合わせ一覧取得
- */
 export async function GET() {
+  const session = await auth();
+  if (!session) {
+    return NextResponse.json({ error: "未ログインです" }, { status: 401 });
+  }
+
   try {
     const inquiries = await prisma.inquiry.findMany({
       orderBy: { createdAt: "desc" },
@@ -117,10 +117,12 @@ export async function GET() {
   }
 }
 
-/**
- * ✅ 問い合わせ削除
- */
 export async function DELETE(req: NextRequest) {
+  const session = await auth();
+  if (!session) {
+    return NextResponse.json({ error: "未ログインです" }, { status: 401 });
+  }
+
   try {
     const body = await req.json();
     const { id } = body;

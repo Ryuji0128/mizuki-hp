@@ -1,67 +1,56 @@
 "use server";
 
-// useActionState（React19の新機能）により、formアクション（POST）をAPI無しに処理できるため、以下を実装
-
-import { signIn } from "@/lib/auth";
+import { signIn } from "@/auth";
 import { getPrismaClient } from "@/lib/db";
 import * as z from "zod";
 import { LoginSchema } from "@/lib/validation";
 import { AuthError } from "next-auth";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 export const login = async (data: z.infer<typeof LoginSchema>) => {
   const validateData = LoginSchema.safeParse(data);
-  const errorMessages: string[] = [];
 
-  // Todo: ログイン時にはバリデーションエラーは必要ないが、念の為実装：不必要なら削除検討
   if (!validateData.success) {
-    const errors = validateData.error.flatten();
-
-    // 各フィールドのエラーメッセージを `string[]` に変換
-    for (const key in errors.fieldErrors) {
-      const fieldError = errors.fieldErrors[key as keyof typeof errors.fieldErrors];
-      if (fieldError) {
-        errorMessages.push(...fieldError);
-      }
-    }
-
-    return { success: false, messages: errorMessages };
+    return { success: false, messages: ["入力内容に不備があります。"] };
   }
 
-  const prisma = await getPrismaClient();
-  const existUser = await prisma.user.findFirst({
-    where: {
-      email: data.email,
-    },
+  const { email, password } = validateData.data;
+
+  const prisma = getPrismaClient();
+  const existUser = await prisma.user.findUnique({
+    where: { email },
+    select: { email: true, password: true },
   });
 
-  // ProviderがCredentials以外の場合はパスワードが存在しないため、同じEmailを持つユーザーが存在してもパスワードが存在しなければエラーを返す
-  // Todo: 以下のエラーメッセージをそれぞれの状態に分けて返す
-  if (!existUser || !existUser.password || !existUser.email) {
-    errorMessages.push("ユーザーが存在しません。");
-    return { success: false, messages: errorMessages };
+  if (!existUser || !existUser.email) {
+    return { success: false, messages: ["ユーザーが存在しません。"] };
+  }
+
+  if (!existUser.password) {
+    return { success: false, messages: ["このアカウントはパスワードログインに対応していません。"] };
   }
 
   try {
-    signIn("credentials", {
-      email: existUser.email,
-      password: data.password,
+    await signIn("credentials", {
+      email,
+      password,
       redirect: false,
     });
   } catch (error) {
-    // ログインエラーの場合
+    if (isRedirectError(error)) {
+      // next-auth が成功時に throw する NEXT_REDIRECT は再 throw して正常に処理させる
+      throw error;
+    }
     if (error instanceof AuthError) {
       switch (error.type) {
         case "CredentialsSignin":
-          errorMessages.push("パスワードが間違っています。");
-          return { success: false, messages: errorMessages };
+          return { success: false, messages: ["パスワードが間違っています。"] };
         default:
-          errorMessages.push("ログインに失敗しました。");
-          return { success: false, messages: errorMessages };
+          return { success: false, messages: ["ログインに失敗しました。"] };
       }
     }
-    // その他のエラーの場合
-    errorMessages.push("サーバーエラーが発生しました、管理者へ問い合わせてください。");
-    return { success: false, messages: errorMessages };
+    return { success: false, messages: ["サーバーエラーが発生しました。管理者へ問い合わせてください。"] };
   }
+
   return { success: true };
 };
