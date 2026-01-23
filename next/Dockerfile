@@ -3,12 +3,12 @@ FROM node:20-alpine
 RUN apk add --no-cache openssl
 
 WORKDIR /app
-
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 COPY package.json yarn.lock ./
 RUN yarn install --network-timeout 600000
 
 COPY . .
-
+RUN rm -rf .next
 RUN npx prisma generate
 RUN yarn build
 
