@@ -51,18 +51,18 @@ export default function AdminBlogPage() {
     <main className="max-w-3xl mx-auto p-6 space-y-6">
       {/* ✅ 新規作成ボタン */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold flex items-center gap-2">📚 投稿一覧</h1>
+        <h1 className="text-2xl font-bold flex items-center gap-2">🖊️ 俳句一覧</h1>
         <Link
           href="/portal-admin/blog/new"
           className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition"
         >
-          ＋ 新規投稿
+          ＋ 新規俳句
         </Link>
       </div>
 
       {/* 投稿リスト */}
       {blogs.length === 0 ? (
-        <p className="text-gray-600 text-center mt-10">投稿がありません。</p>
+        <p className="text-gray-600 text-center mt-10">俳句がありません。</p>
       ) : (
         blogs.map((blog) => (
           <div key={blog.id} className="bg-white rounded-xl shadow-sm border p-4 flex gap-4 items-start">

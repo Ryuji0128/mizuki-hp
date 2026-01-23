@@ -1,27 +1,36 @@
-import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { getPrismaClient } from "@/lib/db";
+import { NextRequest, NextResponse } from "next/server";
+
+const prisma = getPrismaClient();
 
 export async function GET() {
   try {
-    const prisma = await getPrismaClient();
     const news = await prisma.news.findMany({
-      orderBy: { date: "desc" },
+      orderBy: [{ pinned: "desc" }, { date: "desc" }],
     });
     return NextResponse.json({ news });
   } catch (error) {
-    console.error("Database connection error:", error);
-    return NextResponse.json({ error: "Failed to fetch news" }, { status: 500 });
+    console.error("お知らせ取得エラー:", error);
+    return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session) {
+    return NextResponse.json({ error: "未ログインです" }, { status: 401 });
+  }
+
   try {
-    const prisma = await getPrismaClient();
     const body = await req.json();
-    const { date, title, contents, url } = body;
+    const { date, title, contents, url, color, pinned } = body;
 
     if (!date || !title || !contents) {
-      return NextResponse.json({ error: "date, title, and contents are required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "日付、タイトル、内容は必須です" },
+        { status: 400 }
+      );
     }
 
     const news = await prisma.news.create({
@@ -30,57 +39,14 @@ export async function POST(req: NextRequest) {
         title,
         contents,
         url: url || null,
+        color: color || "black",
+        pinned: pinned || false,
       },
     });
 
-    return NextResponse.json({ message: "News added successfully", news });
+    return NextResponse.json(news);
   } catch (error) {
-    console.error("Database connection error:", error);
-    return NextResponse.json({ error: "Failed to add news" }, { status: 500 });
-  }
-}
-
-export async function DELETE(req: NextRequest) {
-  try {
-    const prisma = await getPrismaClient();
-    const { id } = await req.json();
-
-    if (!id) {
-      return NextResponse.json({ error: "ID is required" }, { status: 400 });
-    }
-
-    await prisma.news.delete({ where: { id } });
-
-    return NextResponse.json({ message: "News deleted successfully" });
-  } catch (error) {
-    console.error("Database connection error:", error);
-    return NextResponse.json({ error: "Failed to delete news" }, { status: 500 });
-  }
-}
-
-export async function PUT(req: NextRequest) {
-  try {
-    const prisma = await getPrismaClient();
-    const body = await req.json();
-    const { id, date, title, contents, url } = body;
-
-    if (!id || !title || !contents) {
-      return NextResponse.json({ error: "id, title, and contents are required fields" }, { status: 400 });
-    }
-
-    const updatedNews = await prisma.news.update({
-      where: { id },
-      data: {
-        date,
-        title,
-        contents,
-        url,
-      },
-    });
-
-    return NextResponse.json({ message: "News updated successfully", updatedNews });
-  } catch (error) {
-    console.error("Database connection error:", error);
-    return NextResponse.json({ error: "Failed to update news" }, { status: 500 });
+    console.error("お知らせ作成エラー:", error);
+    return NextResponse.json({ error: "作成に失敗しました" }, { status: 500 });
   }
 }

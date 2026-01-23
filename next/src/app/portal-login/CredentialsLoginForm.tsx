@@ -5,12 +5,9 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoginSchema } from "@/lib/validation";
 import {
-  Typography,
   TextField,
   Button,
   Box,
-  Divider,
-  Link,
   InputAdornment,
   IconButton,
   Alert,
@@ -21,7 +18,7 @@ import {
   Visibility,
   VisibilityOff,
 } from "@mui/icons-material";
-import { signIn } from "next-auth/react";
+import { login } from "@/actions/login";
 
 type LoginFormValues = {
   email: string;
@@ -43,18 +40,13 @@ export default function CredentialsLoginForm() {
   const handleClickShowPassword = () => setShowPassword(!showPassword);
 
   const onSubmit = async (data: LoginFormValues) => {
-    const { email, password } = data;
     setErrorMessage(null);
     try {
-      const result = await signIn("credentials", {
-        redirect: false,
-        email,
-        password,
-      });
-      if (!result?.error) {
-        window.location.href = "/";
+      const result = await login(data);
+      if (result.success) {
+        window.location.href = "/portal-admin";
       } else {
-        setErrorMessage("メールアドレスまたはパスワードが正しくありません。");
+        setErrorMessage(result.messages?.[0] || "ログインに失敗しました。");
       }
     } catch {
       setErrorMessage("ログイン中にエラーが発生しました。もう一度お試しください。");
@@ -69,14 +61,12 @@ export default function CredentialsLoginForm() {
       component="form"
       onSubmit={handleSubmit(onSubmit)}
     >
-      {/* エラーメッセージ */}
       {errorMessage && (
         <Alert severity="error" sx={{ mb: 1 }}>
           {errorMessage}
         </Alert>
       )}
 
-      {/* メールアドレス */}
       <Controller
         name="email"
         control={control}
@@ -100,7 +90,6 @@ export default function CredentialsLoginForm() {
         )}
       />
 
-      {/* パスワード */}
       <Controller
         name="password"
         control={control}
@@ -136,7 +125,6 @@ export default function CredentialsLoginForm() {
         )}
       />
 
-      {/* ログインボタン */}
       <Button
         type="submit"
         variant="contained"
@@ -156,24 +144,6 @@ export default function CredentialsLoginForm() {
       >
         {isSubmitting ? "ログイン中..." : "ログイン"}
       </Button>
-
-      {/* ユーザー登録リンク */}
-      <Typography variant="body2" sx={{ mt: 1, textAlign: "center", color: "text.secondary" }}>
-        アカウントをお持ちでない方は{" "}
-        <Link
-          href="/portal-admin/register-user"
-          sx={{ textDecoration: "none", fontWeight: "bold", color: "primary.main" }}
-        >
-          新規登録
-        </Link>
-      </Typography>
-
-      {/* OR Divider */}
-      <Divider sx={{ my: 1 }}>
-        <Typography variant="body2" color="text.secondary">
-          または
-        </Typography>
-      </Divider>
     </Box>
   );
 }

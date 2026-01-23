@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build && next-sitemap --config next-sitemap.config.cjs",
     "postbuild": "next-sitemap --config next-sitemap.config.cjs",
     "start": "NODE_ENV=production node server.js",
@@ -50,7 +50,11 @@
     "xss": "^1.0.15",
     "zod": "^3.24.2"
   },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
+  },
   "devDependencies": {
+    "tsx": "^4.19.0",
     "@types/node": "^22.13.4",
     "@types/nodemailer": "^7.0.2",
     "@types/react": "^19.0.9",

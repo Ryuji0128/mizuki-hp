@@ -57,6 +57,7 @@ export default function Header() {
     { title: "お問い合わせ", href: "/contact" },
     { title: "オンライン診療", href: "/online" },
     { title: "院長俳句展", href: "/blog" },
+    { title: "ログイン", href: "/portal-login" },
   ];
 
   return (
