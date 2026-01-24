@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
                 protocol: "https",
                 hostname: "mizuki-clinic.online",
             },
+            {
+                protocol: "https",
+                hostname: "static.wixstatic.com",
+            },
         ],
     },
 };
