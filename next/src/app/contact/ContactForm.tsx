@@ -2,17 +2,36 @@
 
 import BaseContainer from "@/components/BaseContainer";
 import { validateInquiry } from "@/lib/validation";
-import { CheckCircle, Error } from "@mui/icons-material";
+import {
+  CheckCircle,
+  Error,
+  Phone,
+  LocationOn,
+  Send,
+} from "@mui/icons-material";
 import {
   Box,
   Button,
   CircularProgress,
+  Divider,
+  InputAdornment,
   Modal,
+  Paper,
   TextField,
-  Typography
+  Typography,
 } from "@mui/material";
 import axios from "axios";
+import Script from "next/script";
 import { useCallback, useRef, useState } from "react";
+
+declare global {
+  interface Window {
+    grecaptcha: {
+      ready: (cb: () => void) => void;
+      execute: (siteKey: string, options: { action: string }) => Promise<string>;
+    };
+  }
+}
 
 interface FormErrors {
   name?: string;
@@ -22,10 +41,6 @@ interface FormErrors {
   company?: string;
 }
 
-/**
- * ContactFormContent
- * 実際のフォームの中身
- */
 export default function ContactForm() {
   const nameRef = useRef<HTMLInputElement>(null);
   const companyRef = useRef<HTMLInputElement>(null);
@@ -39,15 +54,12 @@ export default function ContactForm() {
     "loading" | "success" | "error"
   >("loading");
 
-  // モーダルを閉じる
   const closeModal = () => setIsModalOpen(false);
 
-  // 入力中にエラーをクリア
   const handleChange = (field: keyof FormErrors) => {
     setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
-  // フォーム送信
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -59,7 +71,6 @@ export default function ContactForm() {
       inquiry: inquiryRef.current?.value || "",
     };
 
-    // 入力チェック
     const validationErrors = validateInquiry(formData);
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) return;
@@ -68,13 +79,27 @@ export default function ContactForm() {
     setModalContent("loading");
 
     try {
-      // ✅ reCAPTCHA は一旦スキップ
+      // reCAPTCHA v3 トークン取得＆検証
+      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+      if (siteKey && window.grecaptcha) {
+        const token = await new Promise<string>((resolve) => {
+          window.grecaptcha.ready(async () => {
+            const t = await window.grecaptcha.execute(siteKey, { action: "contact" });
+            resolve(t);
+          });
+        });
+
+        const recaptchaRes = await axios.post("/api/recaptcha", { token });
+        if (!recaptchaRes.data.success) {
+          setModalContent("error");
+          return;
+        }
+      }
+
       const emailRes = await axios.post("/api/email", formData);
 
       if (emailRes.data.success) {
         setModalContent("success");
-
-        // フォーム初期化
         if (nameRef.current) nameRef.current.value = "";
         if (companyRef.current) companyRef.current.value = "";
         if (emailRef.current) emailRef.current.value = "";
@@ -89,58 +114,113 @@ export default function ContactForm() {
     }
   }, []);
 
+  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+
   return (
     <BaseContainer>
+      {recaptchaSiteKey && (
+        <Script
+          src={`https://www.google.com/recaptcha/api.js?render=${recaptchaSiteKey}`}
+          strategy="lazyOnload"
+        />
+      )}
+
+      {/* クリニック情報セクション */}
       <Box
-        component="form"
-        onSubmit={handleSubmit}
         sx={{
-          width: "100%",
-          maxWidth: 600,
-          margin: "auto",
-          padding: "2rem",
-          borderRadius: "10px",
-          boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
-          backgroundColor: "rgba(255, 255, 255, 0.6)",
+          maxWidth: 640,
+          mx: "auto",
+          mb: 5,
+          textAlign: "center",
         }}
       >
         <Typography
-          variant="h6"
-          component="h2"
-          align="justify"
-          paddingY={5}
-          sx={{ textAlign: "justify", textJustify: "inter-word" }}
+          variant="body1"
+          sx={{ color: "text.secondary", lineHeight: 2, mb: 4 }}
         >
-          下記の送信フォームよりお問い合わせ可能です。<br />
-          ご質問・ご相談のある方はお気軽にお問い合わせください。<br />
-          またネット予約はこちらより２４時間受け付けております。<br />
+          ご質問・ご相談のある方はお気軽にお問い合わせください。
+          <br />
+          お電話またはフォームにて受け付けております。
         </Typography>
 
         <Box
           sx={{
             display: "flex",
-            flexDirection: "column",
-            gap: 2,
-            marginBottom: "20px",
+            flexDirection: { xs: "column", sm: "row" },
+            gap: { xs: 2, sm: 4 },
+            justifyContent: "center",
+            alignItems: "center",
+            mb: 2,
           }}
         >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Phone sx={{ color: "#2a7d8f", fontSize: 20 }} />
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              076-255-0337
+            </Typography>
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <LocationOn sx={{ color: "#2a7d8f", fontSize: 20 }} />
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              石川県金沢市みずき1丁目3-5
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+
+      <Divider sx={{ maxWidth: 640, mx: "auto", mb: 5 }} />
+
+      {/* フォームセクション */}
+      <Paper
+        component="form"
+        onSubmit={handleSubmit}
+        elevation={0}
+        sx={{
+          maxWidth: 640,
+          mx: "auto",
+          p: { xs: 3, sm: 5 },
+          borderRadius: 3,
+          border: "1px solid",
+          borderColor: "divider",
+          backgroundColor: "#fafffe",
+        }}
+      >
+        <Typography
+          variant="subtitle1"
+          sx={{
+            fontWeight: 700,
+            mb: 3,
+            color: "#2a7d8f",
+            textAlign: "center",
+          }}
+        >
+          お問い合わせフォーム
+        </Typography>
+
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
           <TextField
             inputRef={nameRef}
-            label="お名前*"
+            label="お名前"
             name="name"
+            required
             error={Boolean(errors.name)}
             helperText={errors.name}
             onChange={() => handleChange("name")}
             fullWidth
+            size="small"
+            sx={fieldStyle}
           />
           <TextField
             inputRef={emailRef}
-            label="メールアドレス*"
+            label="メールアドレス"
             name="email"
+            required
             error={Boolean(errors.email)}
             helperText={errors.email}
             onChange={() => handleChange("email")}
             fullWidth
+            size="small"
+            sx={fieldStyle}
           />
           <TextField
             inputRef={phoneRef}
@@ -150,88 +230,139 @@ export default function ContactForm() {
             helperText={errors.phone}
             onChange={() => handleChange("phone")}
             fullWidth
+            size="small"
+            sx={fieldStyle}
           />
           <TextField
             inputRef={inquiryRef}
-            label="お問い合わせ内容*"
+            label="お問い合わせ内容"
             name="inquiry"
+            required
             error={Boolean(errors.inquiry)}
             helperText={errors.inquiry}
             onChange={() => handleChange("inquiry")}
             fullWidth
             multiline
-            rows={4}
+            rows={5}
+            sx={fieldStyle}
           />
         </Box>
 
-        <Box
-          display="flex"
-          flexDirection="column"
-          justifyContent="center"
-          alignItems="center"
-          width="100%"
-        >
+        <Box sx={{ mt: 4, textAlign: "center" }}>
           <Button
             type="submit"
             variant="contained"
+            endIcon={<Send sx={{ fontSize: 18 }} />}
             sx={{
-              backgroundColor: "primary.main",
-              color: "primary.contrastText",
-              width: "200px",
-              "&:hover": { backgroundColor: "primary.dark" },
+              backgroundColor: "#2a7d8f",
+              color: "#fff",
+              px: 5,
+              py: 1.2,
+              fontWeight: 600,
+              borderRadius: 2,
+              textTransform: "none",
+              fontSize: "0.95rem",
+              boxShadow: "0 2px 8px rgba(42,125,143,0.3)",
+              "&:hover": {
+                backgroundColor: "#1f6272",
+                boxShadow: "0 4px 12px rgba(42,125,143,0.4)",
+              },
             }}
           >
-            送信
+            送信する
           </Button>
         </Box>
-      </Box>
+
+      </Paper>
 
       {/* モーダル */}
       <Modal open={isModalOpen} onClose={closeModal}>
-        <Box
+        <Paper
           sx={{
             position: "absolute",
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            width: 300,
-            bgcolor: "background.paper",
-            boxShadow: 24,
+            width: { xs: 280, sm: 340 },
             p: 4,
             textAlign: "center",
-            borderRadius: "10px",
+            borderRadius: 3,
           }}
         >
           {modalContent === "loading" && (
             <>
-              <CircularProgress />
-              <Typography sx={{ mt: 2 }}>お問い合わせ送信中...</Typography>
+              <CircularProgress sx={{ color: "#2a7d8f" }} />
+              <Typography sx={{ mt: 2, color: "text.secondary" }}>
+                送信中...
+              </Typography>
             </>
           )}
           {modalContent === "success" && (
             <>
-              <CheckCircle sx={{ color: "green", fontSize: 50 }} />
-              <Typography sx={{ mt: 2 }}>
-                送信が完了しました。お問い合わせいただき、ありがとうございます。
+              <CheckCircle sx={{ color: "#4caf50", fontSize: 56 }} />
+              <Typography sx={{ mt: 2, fontWeight: 600 }}>
+                送信完了
               </Typography>
-              <Button onClick={closeModal} sx={{ mt: 2 }} variant="contained">
+              <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
+                お問い合わせいただき、ありがとうございます。
+                <br />
+                担当者よりご連絡いたします。
+              </Typography>
+              <Button
+                onClick={closeModal}
+                variant="outlined"
+                sx={{
+                  mt: 3,
+                  borderColor: "#2a7d8f",
+                  color: "#2a7d8f",
+                  "&:hover": { borderColor: "#1f6272", backgroundColor: "#f0f9fb" },
+                }}
+              >
                 閉じる
               </Button>
             </>
           )}
           {modalContent === "error" && (
             <>
-              <Error sx={{ color: "red", fontSize: 50 }} />
-              <Typography sx={{ mt: 2, color: "red" }}>
-                送信に失敗しました。ウェブサイト管理者にお問い合わせください。
+              <Error sx={{ color: "#e53935", fontSize: 56 }} />
+              <Typography sx={{ mt: 2, fontWeight: 600, color: "#e53935" }}>
+                送信に失敗しました
               </Typography>
-              <Button onClick={closeModal} sx={{ mt: 2 }} variant="contained">
+              <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
+                お手数ですが、お電話にてお問い合わせください。
+              </Typography>
+              <Button
+                onClick={closeModal}
+                variant="outlined"
+                sx={{
+                  mt: 3,
+                  borderColor: "#e53935",
+                  color: "#e53935",
+                  "&:hover": { borderColor: "#c62828", backgroundColor: "#fff5f5" },
+                }}
+              >
                 閉じる
               </Button>
             </>
           )}
-        </Box>
+        </Paper>
       </Modal>
     </BaseContainer>
   );
 }
+
+const fieldStyle = {
+  "& .MuiOutlinedInput-root": {
+    borderRadius: 2,
+    backgroundColor: "#fff",
+    "&:hover .MuiOutlinedInput-notchedOutline": {
+      borderColor: "#2a7d8f",
+    },
+    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+      borderColor: "#2a7d8f",
+    },
+  },
+  "& .MuiInputLabel-root.Mui-focused": {
+    color: "#2a7d8f",
+  },
+};

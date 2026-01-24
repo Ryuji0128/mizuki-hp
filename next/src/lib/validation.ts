@@ -17,7 +17,7 @@ const validateName = (name: string): string | null => {
 
 const validateEmail = (email: string): string | null => {
   const emailPattern =
-    /^[A-Za-z0-9]{1}[A-Za-z0-9_.-]*@{1}[A-Za-z0-9_.-]+.[A-Za-z0-9]+$/;
+    /^[A-Za-z0-9]{1}[A-Za-z0-9_.-]*@{1}[A-Za-z0-9_.-]+\.[A-Za-z0-9]+$/;
   if (!email) {
     return "メールアドレスを入力してください。";
   } else if (!emailPattern.test(email)) {

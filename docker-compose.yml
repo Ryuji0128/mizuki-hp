@@ -16,7 +16,7 @@ services:
     depends_on:
       - mysql
     restart: unless-stopped
-    # mem_limit: 512m
+    mem_limit: 512m
 
   mysql:
     image: mysql:8.0
@@ -27,6 +27,9 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-app_db}
       MYSQL_USER: ${MYSQL_USER:-app_user}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-app_pass}
+    command: >
+      --innodb-buffer-pool-size=128M --key-buffer-size=16M --max-connections=30 --table-open-cache=200 --tmp-table-size=16M --max-heap-table-size=16M
+    mem_limit: 256m
     volumes:
       - ./mysql/data:/var/lib/mysql
 
