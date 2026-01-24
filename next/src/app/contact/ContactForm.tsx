@@ -14,7 +14,6 @@ import {
   Button,
   CircularProgress,
   Divider,
-  InputAdornment,
   Modal,
   Paper,
   TextField,
@@ -41,7 +40,11 @@ interface FormErrors {
   company?: string;
 }
 
-export default function ContactForm() {
+interface ContactFormProps {
+  recaptchaSiteKey: string;
+}
+
+export default function ContactForm({ recaptchaSiteKey }: ContactFormProps) {
   const nameRef = useRef<HTMLInputElement>(null);
   const companyRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -80,11 +83,10 @@ export default function ContactForm() {
 
     try {
       // reCAPTCHA v3 トークン取得＆検証
-      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-      if (siteKey && window.grecaptcha) {
+      if (recaptchaSiteKey && window.grecaptcha) {
         const token = await new Promise<string>((resolve) => {
           window.grecaptcha.ready(async () => {
-            const t = await window.grecaptcha.execute(siteKey, { action: "contact" });
+            const t = await window.grecaptcha.execute(recaptchaSiteKey, { action: "contact" });
             resolve(t);
           });
         });
@@ -112,9 +114,7 @@ export default function ContactForm() {
       console.error("送信エラー:", error);
       setModalContent("error");
     }
-  }, []);
-
-  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+  }, [recaptchaSiteKey]);
 
   return (
     <BaseContainer>

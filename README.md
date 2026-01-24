@@ -9,7 +9,7 @@
 - 院長俳句展（縦書き表示、旧サイトからの移行データ含む）
 - お知らせ管理（管理画面からCRUD操作）
 - ブログ（俳句）投稿管理
-- お問い合わせフォーム（reCAPTCHA v3 + Azure MSAL メール送信）
+- お問い合わせフォーム（reCAPTCHA v3 + nodemailer SMTP送信）
 - 管理者ポータル（認証付き）
 
 ## 目次
@@ -61,15 +61,24 @@ docker compose down
 
 | サービス | コンテナ名 | ポート | 説明 |
 |---------|-----------|--------|------|
-| next | next_app | 2999:3000 | Next.jsアプリケーション |
-| mysql | mysql_db | 3306 | MySQL 8.0 データベース |
-| nginx | nginx_proxy | 80:80 | リバースプロキシ |
+| next | next_app | 2999:3000 | Next.jsアプリケーション (512MB) |
+| mysql | mysql_db | 3306 | MySQL 8.0 データベース (256MB) |
+| nginx | nginx_proxy | 80, 443 | リバースプロキシ + SSL終端 |
+| certbot | certbot | - | Let's Encrypt 証明書管理 |
 
 ### アーキテクチャ
 
 ```
-[ブラウザ] → [nginx:80] → [next:3000] → [mysql:3306]
+[ブラウザ] → [nginx:443 SSL] → [next:3000] → [mysql:3306]
+                ↓
+         [certbot: Let's Encrypt]
 ```
+
+### ボリューム
+
+- `./uploads` → Next.js + Nginx で画像ファイルを永続化・配信
+- `./certbot/conf` → SSL証明書
+- `./mysql/data` → DBデータ
 
 ## 環境変数の設定
 
@@ -77,16 +86,25 @@ docker compose down
 
 ```env
 # 認証
-AUTH_SECRET=your-secret-key-here
-NEXTAUTH_URL=http://localhost:2999
+AUTH_SECRET=<openssl rand -base64 32 で生成>
+NEXTAUTH_URL=http://localhost:3000
 
 # データベース
 DATABASE_URL=mysql://app_user:app_pass@mysql:3306/app_db
 
-# Google OAuth（オプション）
-AUTH_GOOGLE_ID=your-google-client-id
-AUTH_GOOGLE_SECRET=your-google-client-secret
+# メール送信 (nodemailer)
+CONTACT_TO_EMAIL=info@example.com
+SMTP_HOST=mail.example.com
+SMTP_PORT=465
+SMTP_USER=info@example.com
+SMTP_PASS=your-smtp-password
+
+# reCAPTCHA v3
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your-site-key
+RECAPTCHA_SECRET_KEY=your-secret-key
 ```
+
+本番環境では `docker-compose.yml` の `environment` で `NEXTAUTH_URL=https://mizuki-clinic.online` が上書きされる。
 
 ## 開発コマンド
 
@@ -135,6 +153,23 @@ docker compose up -d
 docker compose exec next npx prisma migrate deploy
 ```
 
+### SSL証明書 (初回)
+
+```bash
+docker compose run --rm certbot certonly \
+  --webroot -w /var/www/certbot \
+  -d mizuki-clinic.online \
+  --agree-tos --email <メールアドレス>
+docker compose restart nginx
+```
+
+### SSL証明書更新 (月1回cron推奨)
+
+```bash
+docker compose run --rm certbot renew --quiet
+docker compose restart nginx
+```
+
 ## 主要技術スタック
 
 ### フロントエンド
@@ -153,7 +188,9 @@ docker compose exec next npx prisma migrate deploy
 
 ### インフラ
 - Docker / Docker Compose
-- Nginx（リバースプロキシ）
+- Nginx（リバースプロキシ + SSL終端）
+- Let's Encrypt / Certbot（SSL証明書）
+- さくらVPS 1GB
 - GitHub Actions (CI/CD)
 - GitHub Container Registry (ghcr.io)
 
@@ -205,9 +242,13 @@ mizuki-hp/
 | `/blog` | 院長俳句展（縦書き、5-7-5段下げ表示） |
 | `/news` | お知らせ一覧 |
 | `/contact` | お問い合わせフォーム |
+| `/consultation` | 診療時間 |
 | `/doctor` | 院長紹介 |
 | `/services` | 診療案内 |
 | `/access` | アクセス |
+| `/endoscopy` | 内視鏡検査 |
+| `/online` | オンライン診療 |
+| `/recruit` | 採用情報 |
 | `/portal-login` | 管理者ログイン |
 | `/portal-admin` | 管理ダッシュボード |
 | `/portal-admin/blog` | 俳句投稿管理 |
@@ -305,15 +346,24 @@ docker compose exec mysql mysql -u app_user -papp_pass app_db
 - 句集（年月別アーカイブ）フィルタ機能
 - 旧サイトの画像は wixstatic.com から参照
 
+## セキュリティ対策
+
+- **認証:** 強力な AUTH_SECRET (base64 32byte) / bcrypt パスワードハッシュ
+- **API保護:** ADMIN ロールチェック (News CRUD, 問い合わせ削除, アップロード)
+- **アップロード:** 認証必須 / ファイル形式制限 (JPEG, PNG, GIF, WebP) / 5MB制限 / ランダムファイル名
+- **Nginx:** セキュリティヘッダー (HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy)
+- **フォーム:** reCAPTCHA v3 / XSS サニタイズ (xss) / バリデーション
+- **SSL:** Let's Encrypt + HTTP→HTTPS自動リダイレクト
+
 ## その他設定
 
-### Azure MSAL（問い合わせメール）
+### メール送信 (nodemailer)
 
-MS 365との連携でお問い合わせメール送信。
+SMTP経由でお問い合わせメール送信（管理者通知 + 自動返信）。
 
 ### reCAPTCHA v3
 
-問い合わせフォームのスパム対策として導入。
+問い合わせフォームのスパム対策。Google reCAPTCHA管理画面でサイトキーを取得し`.env`に設定。
 
 ### Sitemap
 
