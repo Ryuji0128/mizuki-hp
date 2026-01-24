@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { getPrismaClient } from "@/lib/db";
+import { isRateLimited } from "@/lib/rateLimit";
 import { validateInquiry } from "@/lib/validation";
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
@@ -8,6 +9,13 @@ import xss from "xss";
 const prisma = getPrismaClient();
 
 export async function POST(req: NextRequest) {
+  if (isRateLimited(req, { windowMs: 60_000, max: 3 })) {
+    return NextResponse.json(
+      { success: false, error: "送信回数の上限に達しました。しばらく経ってからお試しください。" },
+      { status: 429 }
+    );
+  }
+
   try {
     const inquiryData = await req.json();
 

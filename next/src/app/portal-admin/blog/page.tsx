@@ -73,6 +73,7 @@ export default function AdminBlogPage() {
                 width={120}
                 height={100}
                 className="rounded-md object-cover"
+                unoptimized={blog.imageUrl.startsWith("/uploads/")}
               />
             )}
             <div className="flex-1">
