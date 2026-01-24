@@ -62,6 +62,7 @@ docker-compose.override.yml
 
 # backup
 *.sql
-
+backups/
+uploads/
 # claude code
 .claude/

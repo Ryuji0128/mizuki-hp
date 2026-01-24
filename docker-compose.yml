@@ -15,13 +15,13 @@ services:
     command: sh -c "npx prisma db push && yarn start -H 0.0.0.0 -p 3000"
     depends_on:
       - mysql
-    restart: unless-stopped
-    mem_limit: 512m
+    restart: "no"
+    # mem_limit: 512m
 
   mysql:
     image: mysql:8.0
     container_name: mysql_db
-    restart: always
+    restart: "no"
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-app_db}

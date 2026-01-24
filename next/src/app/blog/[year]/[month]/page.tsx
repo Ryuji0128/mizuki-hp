@@ -44,39 +44,40 @@ export default async function BlogMonthPage({
   const currentBlogs = filtered.slice(startIndex, startIndex + perPage);
 
   return (
-    <main className="max-w-5xl mx-auto px-6 py-16 bg-[#faf8f6] min-h-screen font-['Yuji_Syuku']">
-      <h1 className="text-3xl font-bold text-gray-800 mb-12 text-center">
-        🗓 {year}年{month}月の投稿
+    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-16 bg-[#faf8f6] min-h-screen font-['Yuji_Syuku']">
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-8 sm:mb-12 text-center">
+        {year}年{month}月の投稿
       </h1>
 
       {currentBlogs.length === 0 ? (
-        <p className="text-gray-500 text-center mt-20 text-lg">
+        <p className="text-gray-500 text-center mt-16 sm:mt-20 text-base sm:text-lg">
           この月の投稿はありません。
         </p>
       ) : (
-        <div className="grid gap-10 sm:grid-cols-2">
+        <div className="grid gap-6 sm:gap-10 grid-cols-1 sm:grid-cols-2">
           {currentBlogs.map((blog: any) => (
-            <div key={blog.id} className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all">
+            <div key={blog.id} className="bg-white rounded-xl sm:rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all">
               {blog.imageUrl && (
-                <div className="relative w-full h-[300px] overflow-hidden">
+                <div className="relative w-full h-[200px] sm:h-[300px] overflow-hidden">
                   <Image
                     src={blog.imageUrl}
                     alt={blog.title}
                     width={800}
                     height={500}
                     className="object-cover w-full h-full transition-transform duration-700 ease-in-out hover:scale-105"
+                    unoptimized={blog.imageUrl.startsWith("/uploads/")}
                   />
                 </div>
               )}
-              <div className="p-6 space-y-4">
-                <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">
+              <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 border-b pb-2">
                   {blog.title}
                 </h2>
-                <p className="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed">
+                <p className="text-gray-700 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">
                   {blog.content}
                 </p>
-                <p className="text-right text-gray-400 text-sm">
-                  🗓 {new Date(blog.createdAt).toLocaleDateString("ja-JP")}
+                <p className="text-right text-gray-400 text-xs sm:text-sm">
+                  {new Date(blog.createdAt).toLocaleDateString("ja-JP")}
                 </p>
               </div>
             </div>
@@ -86,13 +87,13 @@ export default async function BlogMonthPage({
 
       {/* ページネーション */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center mt-10 gap-2 text-gray-700 font-['Yuji_Syuku']">
+        <div className="flex justify-center items-center mt-8 sm:mt-10 gap-1.5 sm:gap-2 px-4 text-gray-700 font-['Yuji_Syuku']">
           {page > 1 && (
             <Link
               href={`/blog/${year}/${month}?page=${page - 1}`}
-              className="px-4 py-2 border rounded-md hover:bg-gray-100 transition"
+              className="px-3 py-2 sm:px-4 text-xs sm:text-sm border rounded-md hover:bg-gray-100 transition"
             >
-              ← 前へ
+              前へ
             </Link>
           )}
 
@@ -100,7 +101,7 @@ export default async function BlogMonthPage({
             <Link
               key={p}
               href={`/blog/${year}/${month}?page=${p}`}
-              className={`px-4 py-2 border rounded-md ${p === page ? "bg-green-700 text-white border-green-700" : "hover:bg-gray-100"
+              className={`px-3 py-2 sm:px-4 text-xs sm:text-sm border rounded-md ${p === page ? "bg-green-700 text-white border-green-700" : "hover:bg-gray-100"
                 }`}
             >
               {p}
@@ -110,9 +111,9 @@ export default async function BlogMonthPage({
           {page < totalPages && (
             <Link
               href={`/blog/${year}/${month}?page=${page + 1}`}
-              className="px-4 py-2 border rounded-md hover:bg-gray-100 transition"
+              className="px-3 py-2 sm:px-4 text-xs sm:text-sm border rounded-md hover:bg-gray-100 transition"
             >
-              次へ →
+              次へ
             </Link>
           )}
         </div>

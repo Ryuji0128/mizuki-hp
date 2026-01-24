@@ -1,8 +1,16 @@
 import { NextResponse, NextRequest } from "next/server";
 import { fetchSecret } from "@/lib/fetchSecrets";
+import { isRateLimited } from "@/lib/rateLimit";
 import axios from "axios";
 
 export async function POST(req: NextRequest) {
+  if (isRateLimited(req, { windowMs: 60_000, max: 5 })) {
+    return NextResponse.json(
+      { success: false, message: "リクエスト回数の上限に達しました。" },
+      { status: 429 }
+    );
+  }
+
   const { token } = await req.json();
 
   if (!token) {

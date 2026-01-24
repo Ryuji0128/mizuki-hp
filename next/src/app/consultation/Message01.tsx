@@ -6,15 +6,15 @@ export default function ConsultationHours() {
   const afternoonSymbols = ["○", "○", "休", "○", "○", "休"];
 
   return (
-    <Box sx={{ maxWidth: 700, mx: "auto", mt: 0 }}>
+    <Box sx={{ maxWidth: 700, mx: "auto", mt: 0, width: "100%" }}>
       <TableContainer
         sx={{
           borderRadius: 3,
-          overflow: "hidden",
           boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+          overflowX: "auto",
         }}
       >
-        <Table sx={{ borderCollapse: "collapse" }}>
+        <Table sx={{ borderCollapse: "collapse", minWidth: 320 }}>
           <TableHead>
             <TableRow>
               <TableCell
@@ -23,14 +23,15 @@ export default function ConsultationHours() {
                   backgroundColor: "#2a7d8f",
                   color: "#fff",
                   fontWeight: 700,
-                  fontSize: "0.85rem",
-                  py: 1.5,
+                  fontSize: { xs: "0.7rem", sm: "0.85rem" },
+                  py: { xs: 1, sm: 1.5 },
+                  px: { xs: 1, sm: 2 },
                   borderBottom: "none",
                 }}
               >
                 診療時間
               </TableCell>
-              {days.map((day, i) => (
+              {days.map((day) => (
                 <TableCell
                   key={day}
                   align="center"
@@ -38,8 +39,9 @@ export default function ConsultationHours() {
                     backgroundColor: "#2a7d8f",
                     color: day === "土" ? "#ffd54f" : "#fff",
                     fontWeight: 700,
-                    fontSize: "0.95rem",
-                    py: 1.5,
+                    fontSize: { xs: "0.8rem", sm: "0.95rem" },
+                    py: { xs: 1, sm: 1.5 },
+                    px: { xs: 0.5, sm: 2 },
                     borderBottom: "none",
                     borderLeft: "1px solid rgba(255,255,255,0.2)",
                   }}
@@ -55,10 +57,11 @@ export default function ConsultationHours() {
               <TableCell
                 sx={{
                   fontWeight: 600,
-                  fontSize: "0.8rem",
+                  fontSize: { xs: "0.7rem", sm: "0.8rem" },
                   backgroundColor: "#f0f9fb",
                   whiteSpace: "nowrap",
-                  py: 2,
+                  py: { xs: 1.5, sm: 2 },
+                  px: { xs: 1, sm: 2 },
                   borderBottom: "1px solid #e0eff3",
                 }}
               >
@@ -70,15 +73,16 @@ export default function ConsultationHours() {
                   align="center"
                   sx={{
                     backgroundColor: "#f0f9fb",
-                    py: 2,
+                    py: { xs: 1.5, sm: 2 },
+                    px: { xs: 0.5, sm: 2 },
                     borderLeft: "1px solid #e0eff3",
                     borderBottom: "1px solid #e0eff3",
                   }}
                 >
                   <Box
                     sx={{
-                      width: 28,
-                      height: 28,
+                      width: { xs: 20, sm: 28 },
+                      height: { xs: 20, sm: 28 },
                       borderRadius: "50%",
                       backgroundColor: "#4caf50",
                       mx: "auto",
@@ -92,10 +96,11 @@ export default function ConsultationHours() {
               <TableCell
                 sx={{
                   fontWeight: 600,
-                  fontSize: "0.8rem",
+                  fontSize: { xs: "0.7rem", sm: "0.8rem" },
                   backgroundColor: "#fff",
                   whiteSpace: "nowrap",
-                  py: 2,
+                  py: { xs: 1.5, sm: 2 },
+                  px: { xs: 1, sm: 2 },
                   borderBottom: "none",
                 }}
               >
@@ -107,15 +112,16 @@ export default function ConsultationHours() {
                   align="center"
                   sx={{
                     backgroundColor: "#fff",
-                    py: 2,
+                    py: { xs: 1.5, sm: 2 },
+                    px: { xs: 0.5, sm: 2 },
                     borderLeft: "1px solid #e0eff3",
                     borderBottom: "none",
                   }}
                 >
                   <Box
                     sx={{
-                      width: 28,
-                      height: 28,
+                      width: { xs: 20, sm: 28 },
+                      height: { xs: 20, sm: 28 },
                       borderRadius: "50%",
                       backgroundColor: symbol === "休" ? "#ef5350" : "#4caf50",
                       mx: "auto",
@@ -139,12 +145,12 @@ export default function ConsultationHours() {
         </Box>
       </Box>
 
-      <Typography variant="body2" sx={{ mt: 2, color: "text.secondary", fontWeight: 500 }}>
+      <Typography variant="body2" sx={{ mt: 2, color: "text.secondary", fontWeight: 500, fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
         ※ 休診日：水曜午後・土曜午後、日曜、祝日<br />
         <Box component="span" sx={{ color: "#e53935" }}>※ 受付は診療終了30分前までにお願いします。</Box>
       </Typography>
 
-      <Typography variant="body2" sx={{ mt: 2, lineHeight: 2, color: "text.primary" }}>
+      <Typography variant="body2" sx={{ mt: 2, lineHeight: 2, color: "text.primary", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
         当院では、出来るだけ多くの方に検査を受けていただけるように土曜日も検査が可能です。<br />
         内視鏡検査をご希望の方は、ネットもしくはお電話にてご予約ください。<br />
         ➡ ネットからのご予約は
@@ -164,8 +170,3 @@ export default function ConsultationHours() {
     </Box>
   );
 }
-
-
-
-
-

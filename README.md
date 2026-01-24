@@ -337,6 +337,25 @@ docker compose exec next sh -c "rm -rf node_modules/.prisma && npx prisma genera
 docker compose exec mysql mysql -u app_user -papp_pass app_db
 ```
 
+## レスポンシブ対応
+
+全ページでモバイル（~640px）・タブレット（~1024px）・デスクトップに対応。
+
+### 俳句一覧 (`/blog`)
+- モバイル: 2カラムグリッド、縦書きエリア縮小（160px）、アーカイブは横スクロールのピル型フィルター
+- デスクトップ: 3カラム + 右サイドバー（句集アーカイブ）
+
+### 診療時間 (`/consultation`)
+- テーブルが画面幅に収まらない場合は横スクロール対応
+- モバイル: セルpadding・丸印サイズ・フォントサイズ縮小
+
+### お問い合わせ (`/contact`)
+- フォーム幅・余白がモバイルに合わせて自動調整
+
+### 画像表示
+- アップロード画像は `unoptimized` でNginxから直接配信（Next.js Image最適化をバイパス）
+- wixstatic画像はNext.js Image最適化を使用
+
 ## 院長俳句展について
 
 旧サイト（mizuki-clinic.jp）から23件の俳句データを移行済み。新規投稿はDBで管理し、旧データと統合して表示。
@@ -350,10 +369,39 @@ docker compose exec mysql mysql -u app_user -papp_pass app_db
 
 - **認証:** 強力な AUTH_SECRET (base64 32byte) / bcrypt パスワードハッシュ
 - **API保護:** ADMIN ロールチェック (News CRUD, 問い合わせ削除, アップロード)
+- **レート制限:** お問い合わせAPI (3回/分)、reCAPTCHA API (5回/分) にIPベースの制限
 - **アップロード:** 認証必須 / ファイル形式制限 (JPEG, PNG, GIF, WebP) / 5MB制限 / ランダムファイル名
-- **Nginx:** セキュリティヘッダー (HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy)
+- **Nginx:** セキュリティヘッダー (HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, CSP) / バージョン情報非表示
+- **CSP:** Content-Security-Policy でスクリプト・スタイル・画像の読み込み元を制限
 - **フォーム:** reCAPTCHA v3 / XSS サニタイズ (xss) / バリデーション
 - **SSL:** Let's Encrypt + HTTP→HTTPS自動リダイレクト
+- **DB:** 強固なパスワード設定 / 自動バックアップ (7日間保持)
+
+## 運用スクリプト
+
+`scripts/` ディレクトリにサーバー運用スクリプトを配置。
+
+### SSL証明書自動更新
+
+```bash
+# 手動実行
+./scripts/renew-ssl.sh
+
+# cron設定（毎月1日 3:00）
+0 3 1 * * /root/mizuki-hp/scripts/renew-ssl.sh >> /var/log/certbot-renew.log 2>&1
+```
+
+### DBバックアップ
+
+```bash
+# 手動実行
+./scripts/backup-db.sh
+
+# cron設定（毎日 4:00）
+0 4 * * * /root/mizuki-hp/scripts/backup-db.sh >> /var/log/db-backup.log 2>&1
+```
+
+バックアップは `backups/` に `app_db_YYYYMMDD_HHMMSS.sql.gz` として保存。7日間保持。
 
 ## その他設定
 

@@ -91,21 +91,48 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
     return (
         <main className="min-h-screen font-['Yuji_Syuku']" style={{ background: "linear-gradient(180deg, #f7f3eb 0%, #ede8df 100%)" }}>
             {/* ヘッダー装飾 */}
-            <div className="text-center pt-16 pb-10">
-                <p className="text-sm text-gray-500 tracking-[0.5em] mb-2">── 季節のことば ──</p>
-                <h1 className="text-4xl md:text-5xl font-bold text-gray-800 tracking-[0.3em]">
+            <div className="text-center pt-10 pb-6 sm:pt-16 sm:pb-10 px-4">
+                <p className="text-xs sm:text-sm text-gray-500 tracking-[0.3em] sm:tracking-[0.5em] mb-2">── 季節のことば ──</p>
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-800 tracking-[0.2em] sm:tracking-[0.3em]">
                     院長俳句展
                 </h1>
-                <div className="mt-4 flex justify-center items-center gap-3">
-                    <span className="block w-16 h-px bg-gray-400"></span>
-                    <span className="text-gray-400 text-lg">✿</span>
-                    <span className="block w-16 h-px bg-gray-400"></span>
+                <div className="mt-3 sm:mt-4 flex justify-center items-center gap-3">
+                    <span className="block w-10 sm:w-16 h-px bg-gray-400"></span>
+                    <span className="text-gray-400 text-base sm:text-lg">✿</span>
+                    <span className="block w-10 sm:w-16 h-px bg-gray-400"></span>
                 </div>
             </div>
 
-            <div className="max-w-6xl mx-auto px-6 pb-16 grid lg:grid-cols-[1fr_240px] gap-10">
+            {/* モバイル: アーカイブを横スクロールで表示 */}
+            <div className="lg:hidden max-w-6xl mx-auto px-4 mb-6">
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    <Link
+                        href="/blog"
+                        className={`flex-shrink-0 px-3 py-1.5 text-xs rounded-full border transition ${!filterYear ? "bg-green-800 text-white border-green-800" : "border-gray-300 text-gray-600 hover:bg-green-50"}`}
+                    >
+                        すべて ({blogs.length})
+                    </Link>
+                    {archives.map(([key, count]) => {
+                        const match = key.match(/(\d+)年(\d+)月/);
+                        const year = match?.[1];
+                        const month = match?.[2];
+                        const isActive = filterYear === year && filterMonth === month;
+                        return (
+                            <Link
+                                key={key}
+                                href={`/blog?year=${year}&month=${month}`}
+                                className={`flex-shrink-0 px-3 py-1.5 text-xs rounded-full border transition ${isActive ? "bg-green-800 text-white border-green-800" : "border-gray-300 text-gray-600 hover:bg-green-50"}`}
+                            >
+                                {key} ({count})
+                            </Link>
+                        );
+                    })}
+                </div>
+            </div>
+
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-10 sm:pb-16 grid lg:grid-cols-[1fr_240px] gap-6 lg:gap-10">
                 {/* 俳句カード一覧 */}
-                <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 sm:gap-8 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
                     {currentBlogs.map((blog: any) => (
                         <div
                             key={blog.id}
@@ -121,25 +148,26 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
                                         src={blog.imageUrl}
                                         alt={blog.title}
                                         fill
-                                        sizes="(max-width: 768px) 100vw, 33vw"
+                                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 50vw, 33vw"
                                         className="object-cover"
                                         style={{ objectPosition: blog.imagePosition || "center" }}
+                                        unoptimized={blog.imageUrl.startsWith("/uploads/")}
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                                 </div>
                             )}
 
                             {/* 縦書きエリア */}
-                            <div className="flex flex-col items-center py-6 px-3">
-                                <div className="flex gap-4 h-[220px]">
+                            <div className="flex flex-col items-center py-3 px-2 sm:py-6 sm:px-3">
+                                <div className="flex gap-2 sm:gap-4 h-[160px] sm:h-[220px]">
                                     {/* 左：本文（縦書き・太字・段下げ） */}
                                     {blog.content && (
                                         <div
-                                            className="text-base text-gray-800 font-bold leading-relaxed"
+                                            className="text-sm sm:text-base text-gray-800 font-bold leading-relaxed"
                                             style={{ writingMode: "vertical-rl" }}
                                         >
                                             {blog.content.split("\n").map((line: string, i: number) => (
-                                                <p key={i} style={{ marginTop: i === 1 ? "2em" : i === 2 ? "4em" : 0 }}>
+                                                <p key={i} style={{ marginTop: i === 1 ? "1.5em" : i === 2 ? "3em" : 0 }}>
                                                     {line}
                                                 </p>
                                             ))}
@@ -148,7 +176,7 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
 
                                     {/* 右：タイトル（縦書き・通常） */}
                                     <h2
-                                        className="text-lg text-gray-600 font-normal leading-relaxed"
+                                        className="text-sm sm:text-lg text-gray-600 font-normal leading-relaxed"
                                         style={{ writingMode: "vertical-rl" }}
                                     >
                                         {blog.title}
@@ -156,7 +184,7 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
                                 </div>
 
                                 {/* 日付（横書き） */}
-                                <div className="mt-3 text-xs text-gray-400">
+                                <div className="mt-2 sm:mt-3 text-[10px] sm:text-xs text-gray-400">
                                     {new Date(blog.createdAt).toLocaleDateString("ja-JP")}
                                 </div>
                             </div>
@@ -164,8 +192,8 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
                     ))}
                 </div>
 
-                {/* 右側：アーカイブ */}
-                <aside className="h-fit sticky top-6">
+                {/* 右側：アーカイブ（デスクトップのみ） */}
+                <aside className="hidden lg:block h-fit sticky top-6">
                     <div className="rounded-sm p-5 shadow-sm border border-gray-200" style={{ background: "#fffef9" }}>
                         <h2 className="text-center text-sm font-semibold text-gray-600 tracking-[0.3em] mb-4 pb-2 border-b border-gray-200">
                             句 集
@@ -203,11 +231,11 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
 
             {/* ページネーション */}
             {totalPages > 1 && (
-                <div className="flex justify-center items-center pb-16 gap-2 text-gray-700 font-['Yuji_Syuku']">
+                <div className="flex justify-center items-center pb-10 sm:pb-16 gap-1.5 sm:gap-2 px-4 text-gray-700 font-['Yuji_Syuku']">
                     {currentPage > 1 && (
                         <Link
                             href={`/blog?page=${currentPage - 1}`}
-                            className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-white transition"
+                            className="px-3 py-2 sm:px-4 text-xs sm:text-sm border border-gray-300 rounded hover:bg-white transition"
                         >
                             前へ
                         </Link>
@@ -217,7 +245,7 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
                         <Link
                             key={page}
                             href={`/blog?page=${page}`}
-                            className={`px-4 py-2 text-sm border rounded ${page === currentPage
+                            className={`px-3 py-2 sm:px-4 text-xs sm:text-sm border rounded ${page === currentPage
                                 ? "bg-green-800 text-white border-green-800"
                                 : "border-gray-300 hover:bg-white"
                                 }`}
@@ -229,7 +257,7 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
                     {currentPage < totalPages && (
                         <Link
                             href={`/blog?page=${currentPage + 1}`}
-                            className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-white transition"
+                            className="px-3 py-2 sm:px-4 text-xs sm:text-sm border border-gray-300 rounded hover:bg-white transition"
                         >
                             次へ
                         </Link>
