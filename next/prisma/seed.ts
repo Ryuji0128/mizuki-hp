@@ -4,8 +4,8 @@ import bcryptjs from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = process.env.ADMIN_EMAIL || "admin@example.com";
-  const password = process.env.ADMIN_PASSWORD || "admin1234";
+  const email = process.env.ADMIN_EMAIL || "admin@admin.com";
+  const password = process.env.ADMIN_PASSWORD || "Kimu0915";
   const name = process.env.ADMIN_NAME || "管理者";
 
   const hashedPassword = await bcryptjs.hash(password, 10);

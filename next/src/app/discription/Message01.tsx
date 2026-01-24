@@ -4,7 +4,7 @@ export default function InspectionMessage() {
   return (
     <Box sx={{ maxWidth: 800, mx: "auto", lineHeight: 1.8 }}>
       {/* 胃・大腸内視鏡検査 */}
-      <Typography variant="h6" sx={{ fontWeight: "bold", color: "#black", mb: 1 }}>
+      <Typography variant="h6" sx={{ fontWeight: "bold", color: "#1a1a1a", mb: 1 }}>
         胃・大腸内視鏡検査
       </Typography>
       <Typography variant="body1" sx={{ mb: 3 }}>
@@ -16,7 +16,7 @@ export default function InspectionMessage() {
       </Typography>
 
       {/* 超音波検査 */}
-      <Typography variant="h6" sx={{ fontWeight: "bold", color: "#black", mb: 1 }}>
+      <Typography variant="h6" sx={{ fontWeight: "bold", color: "#1a1a1a", mb: 1 }}>
         超音波検査
       </Typography>
       <Typography variant="body1" sx={{ mb: 3 }}>
@@ -27,7 +27,7 @@ export default function InspectionMessage() {
       </Typography>
 
       {/* 心電図・レントゲン検査 */}
-      <Typography variant="h6" sx={{ fontWeight: "bold", color: "#black", mb: 1 }}>
+      <Typography variant="h6" sx={{ fontWeight: "bold", color: "#1a1a1a", mb: 1 }}>
         心電図・レントゲン検査
       </Typography>
       <Typography variant="body1">
