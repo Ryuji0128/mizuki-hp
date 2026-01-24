@@ -14,62 +14,28 @@ const LeftSubtitleBox: React.FC<titleProps> = ({
   imageSrc,
   imageTitle,
   imageWidth = 240,
-
 }) => {
-  const greenLineLength = 8;
-
   return (
     <Box
       sx={{
         width: imageWidth,
-        maxWidth: { md: "400px" }, // 左側の幅を制限
+        maxWidth: { md: "400px" },
         display: "flex",
-        flexDirection: { xs: "column-reverse", sm: "column" }, // モバイル: 縦並び, タブレット以上: 横並び
-        alignItems: "flex-start", // 左揃え
+        flexDirection: { xs: "column-reverse", sm: "column" },
+        alignItems: "flex-start",
       }}
     >
-      <Box
-        sx={{
-          width: "100%",
-          display: "flex",
-          flexDirection: "column", // モバイル: 縦並び, タブレット以上: 横並び
-          alignItems: "flex-start", // 左揃え
-        }}
-      >
-        {/* 黒い線 */}
-        <Box
-          sx={{
-            width: "100%", // 黒い線の長さ
-            height: "1px", // 黒い線の高さ
-            backgroundColor: "info.light", // 黒い線の色
-            marginBottom: `${-greenLineLength / 2}px`, // 緑の線の高さの半分だけ上にずらす
-          }}
-        />
-        {/* 緑の短い線 */}
-        <Box
-          sx={{
-            width: {
-              xs: "4rem", // モバイル
-              sm: "5rem", // タブレット
-              md: "6rem", // PC
-            }, // 緑の線の長さ
-            height: `${greenLineLength}px`, // 緑の線の高さ
-            backgroundColor: "secondary.main", // 緑の線の色
-          }}
-        />
-      </Box>
-
       {/* タイトル部分 */}
       <Box
         sx={{
           display: "flex",
-          flexDirection: { xs: "row", sm: "column" }, // モバイル: 横並び, タブレット以上: 縦並び
-          flexWrap: "wrap", // モバイル時に折り返し防止
-          // gap: { xs: "0.5rem", sm: "1rem" }, // 要素間の隙間
+          flexDirection: { xs: "row", sm: "column" },
+          flexWrap: "wrap",
           width: "100%",
-          paddingTop: 2,
-          paddingBottom: { xs: 4 },
-          justifyContent: "center",
+          paddingBottom: { xs: 3 },
+          justifyContent: "flex-start",
+          borderLeft: "4px solid #2a7d8f",
+          paddingLeft: 2,
         }}
       >
         {titles.map((title, index) => (
@@ -77,13 +43,15 @@ const LeftSubtitleBox: React.FC<titleProps> = ({
             key={index}
             variant="h3"
             sx={{
-              lineHeight: 1.2,
+              lineHeight: 1.3,
               fontSize: {
-                xs: "1.5rem", // モバイル
-                sm: "1.5rem", // タブレット
-                md: "1.7rem", // PC
+                xs: "1.3rem",
+                sm: "1.4rem",
+                md: "1.5rem",
               },
-              whiteSpace: "nowrap", // モバイル時に改行を防止
+              fontWeight: 600,
+              color: "#1a1a1a",
+              whiteSpace: "nowrap",
             }}
           >
             {title}
@@ -94,7 +62,7 @@ const LeftSubtitleBox: React.FC<titleProps> = ({
         <Box
           sx={{
             width: "100%",
-            display: { xs: "none", sm: "flex" }, // モバイルで非表示, md以上で表示
+            display: { xs: "none", sm: "flex" },
             justifyContent: "center",
             paddingTop: 2,
           }}
@@ -102,9 +70,9 @@ const LeftSubtitleBox: React.FC<titleProps> = ({
           <Image
             src={imageSrc}
             alt={imageTitle ?? ""}
-            width={100} // 任意のダミー値
-            height={100} // 任意のダミー値
-            style={{ width: "100%", height: "auto" }} // パーセントの設定、画像の幅と高さをレスポンシブに調整
+            width={100}
+            height={100}
+            style={{ width: "100%", height: "auto", borderRadius: "8px" }}
             sizes="100vw"
           />
         </Box>

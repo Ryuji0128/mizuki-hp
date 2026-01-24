@@ -19,17 +19,23 @@ const ResponsiveAdjustmentContainer: React.FC<
     <Box
       sx={{
         display: "flex",
-        flexDirection: { xs: "column", sm: "row" }, // モバイルは縦並び、タブレット以上は横並び
-        gap: 4, // 子要素間のスペース
-        justifyContent: { xs: "center", sm: "flex-start" }, // モバイル: 中央揃え, タブレット以上: 左揃え
-        alignItems: { xs: "center", sm: "flex-start" }, // モバイル: 中央揃え, タブレット以上: 上揃え
-        textAlign: "left", // テキストは常に左揃え
-        marginBottom: 20, // 下の余白
+        flexDirection: { xs: "column", sm: "row" },
+        gap: { xs: 3, sm: 4 },
+        justifyContent: { xs: "center", sm: "flex-start" },
+        alignItems: { xs: "center", sm: "flex-start" },
+        textAlign: "left",
+        pb: { xs: 5, sm: 6 },
+        mb: { xs: 5, sm: 6 },
+        borderBottom: "1px solid #e8e8e8",
+        "&:last-child": {
+          borderBottom: "none",
+          mb: 0,
+        },
       }}
     >
       {/* 左側コンポーネント */}
       <Box sx={{ width: { xs: `${titlesWidth.xs}%`, sm: `${titlesWidth.sm}%` } }}>
-        <LeftSubtitleBox titles={titles} imageSrc={imageSrc} imageTitle={imageTitle} imageWidth={imageWidth} />{" "}
+        <LeftSubtitleBox titles={titles} imageSrc={imageSrc} imageTitle={imageTitle} imageWidth={imageWidth} />
       </Box>
 
       {/* 右側コンポーネント */}

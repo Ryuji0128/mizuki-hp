@@ -5,6 +5,8 @@ import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 
+const DEFAULT_AVATAR = "/mizuki_logo_transparent.jpg";
+
 const ProfileConsoleModal = () => {
   const { data: session, status } = useSession();
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
@@ -35,7 +37,7 @@ const ProfileConsoleModal = () => {
       {status === "authenticated" && (
         <>
           <IconButton onClick={handleMenuOpen} color="inherit">
-            <Avatar src={session?.user?.image ?? undefined} alt={session?.user?.name ?? ""} />
+            <Avatar src={session?.user?.image || DEFAULT_AVATAR} alt={session?.user?.name ?? ""} />
           </IconButton>
           <Menu
             anchorEl={anchorEl}
@@ -52,7 +54,7 @@ const ProfileConsoleModal = () => {
           >
             <Box sx={{ display: "flex", alignItems: "center", flexDirection: "column", p: 2 }}>
               <Avatar
-                src={session?.user?.image ?? undefined}
+                src={session?.user?.image || DEFAULT_AVATAR}
                 sx={{ width: 56, height: 56, mb: 1 }}
                 alt={session?.user?.name ?? ""}
               />

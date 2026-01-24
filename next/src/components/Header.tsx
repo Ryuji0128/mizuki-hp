@@ -17,10 +17,42 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import { SessionProvider } from "next-auth/react";
+import { SessionProvider, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+
+function StaffLoginLink({ scrolled, variant, onMenuClose }: { scrolled?: boolean; variant: "desktop" | "mobile"; onMenuClose?: () => void }) {
+  const { status } = useSession();
+  if (status === "authenticated") return null;
+
+  if (variant === "mobile") {
+    return (
+      <MenuItem onClick={onMenuClose}>
+        <Link href="/portal-login" passHref style={{ textDecoration: "none", color: "inherit", width: "100%" }}>
+          <Typography variant="body2" color="text.secondary">スタッフログイン</Typography>
+        </Link>
+      </MenuItem>
+    );
+  }
+
+  return (
+    <Link href="/portal-login" passHref>
+      <Button
+        sx={{
+          color: "text.secondary",
+          "&:hover": { backgroundColor: "rgba(0,0,0,0.04)" },
+          fontSize: { xs: "10px", md: "11px" },
+          padding: { xs: "0.3rem 0.4rem", md: "0.3rem 0.6rem" },
+          lineHeight: 1.2,
+          textAlign: "center",
+        }}
+      >
+        スタッフ<br />ログイン
+      </Button>
+    </Link>
+  );
+}
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -57,7 +89,6 @@ export default function Header() {
     { title: "お問い合わせ", href: "/contact" },
     { title: "オンライン診療", href: "/online" },
     { title: "院長俳句展", href: "/blog" },
-    { title: "ログイン", href: "/portal-login" },
   ];
 
   return (
@@ -65,8 +96,7 @@ export default function Header() {
       <AppBar
         position="fixed"
         sx={{
-          backgroundColor: scrolled ? "primary.main" : "transparent",
-          transition: "background-color 0.5s ease",
+          backgroundColor: "#fff",
           boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
         }}
       >
@@ -98,9 +128,10 @@ export default function Header() {
                   variant="h6"
                   sx={{
                     ml: 1,
-                    fontSize: { xs: "16px", md: "20px" },
-                    color: scrolled ? "info.pale" : "info.dark",
+                    fontSize: { xs: "18px", md: "24px" },
+                    color: "primary.main",
                     fontWeight: 600,
+                    whiteSpace: "nowrap",
                   }}
                 >
                   みずきクリニック
@@ -110,6 +141,7 @@ export default function Header() {
           </Box>
 
           {/* 右側：PC⇔タブレット/モバイル切り替え */}
+          <SessionProvider>
           {isTablet ? (
             <>
               {/* ハンバーガーアイコン */}
@@ -119,13 +151,10 @@ export default function Header() {
                 aria-label="menu"
                 onClick={handleMenuOpen}
               >
-                <MenuIcon sx={{ color: scrolled ? "info.pale" : "info.dark" }} />
+                <MenuIcon sx={{ color: "text.primary" }} />
               </IconButton>
 
-              {/* プロフィールモーダル */}
-              <SessionProvider>
-                <ProfileConsoleModal />
-              </SessionProvider>
+              <ProfileConsoleModal />
 
               {/* ドロップダウンメニュー */}
               <Menu
@@ -151,6 +180,7 @@ export default function Header() {
                     </Link>
                   </MenuItem>
                 ))}
+                <StaffLoginLink variant="mobile" onMenuClose={handleMenuClose} />
               </Menu>
             </>
           ) : (
@@ -161,31 +191,34 @@ export default function Header() {
                   display: "flex",
                   justifyContent: "flex-end",
                   alignItems: "center",
-                  gap: 0.5,
+                  gap: 0,
+                  flexWrap: "nowrap",
                 }}
               >
                 {contentsList.map((content, index) => (
                   <Link key={index} href={content.href} passHref>
                     <Button
                       sx={{
-                        color: scrolled ? "info.pale" : "info.dark",
+                        color: "text.primary",
                         "&:hover": {
-                          backgroundColor: "rgba(255,255,255,0.1)",
+                          backgroundColor: "rgba(0,0,0,0.04)",
                         },
-                        fontSize: { xs: "13px", md: "15px" },
-                        padding: { xs: "0.5rem 0.4rem", md: "0.5rem 0.8rem" },
+                        fontSize: { xs: "11px", md: "13px" },
+                        padding: { xs: "0.4rem 0.3rem", md: "0.4rem 0.5rem" },
+                        whiteSpace: "nowrap",
+                        minWidth: "auto",
                       }}
                     >
                       {content.title}
                     </Button>
                   </Link>
                 ))}
-                <SessionProvider>
-                  <ProfileConsoleModal />
-                </SessionProvider>
+                <StaffLoginLink variant="desktop" scrolled={scrolled} />
+                <ProfileConsoleModal />
               </Container>
             </>
           )}
+          </SessionProvider>
         </Toolbar>
       </AppBar>
 
