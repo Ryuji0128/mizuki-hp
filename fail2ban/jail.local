@@ -1,0 +1,44 @@
+# fail2ban カスタム設定
+# /etc/fail2ban/jail.local にコピーして使用
+
+[DEFAULT]
+bantime = 3600
+findtime = 600
+maxretry = 5
+destemail = info@setaseisakusyo.com
+sender = fail2ban@mizuki-clinic.online
+action = %(action_mwl)s
+
+# SSH不正ログイン防止
+[sshd]
+enabled = true
+port = ssh
+logpath = /var/log/auth.log
+maxretry = 3
+bantime = 86400
+
+# Nginx 不正アクセス防止 (Docker logs)
+[nginx-botsearch]
+enabled = true
+port = http,https
+logpath = /var/log/nginx/access.log
+maxretry = 5
+bantime = 7200
+
+# Nginx 認証失敗
+[nginx-http-auth]
+enabled = true
+port = http,https
+logpath = /var/log/nginx/error.log
+maxretry = 3
+bantime = 3600
+
+# 繰り返し404を叩くbot対策
+[nginx-404]
+enabled = true
+port = http,https
+logpath = /var/log/nginx/access.log
+filter = nginx-404
+maxretry = 20
+findtime = 60
+bantime = 3600

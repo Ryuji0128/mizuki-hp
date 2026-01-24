@@ -169,14 +169,9 @@ const InquiryManagement: React.FC<InquiryManagementProps> = ({ session }) => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: "bold", width: "120px", textAlign: "center" }}>
-                  日付
+                <TableCell sx={{ fontWeight: "bold", width: "150px", textAlign: "center" }}>
+                  日時
                 </TableCell>
-                {!isMobile && (
-                  <TableCell sx={{ fontWeight: "bold", width: "80px", textAlign: "center" }}>
-                    時間
-                  </TableCell>
-                )}
                 <TableCell sx={{ fontWeight: "bold", width: "140px", textAlign: "center" }}>
                   氏名
                 </TableCell>
@@ -209,16 +204,14 @@ const InquiryManagement: React.FC<InquiryManagementProps> = ({ session }) => {
                         <Typography variant="body2">
                           {dayjs(inquiry.createdAt).format("MM月DD日")}
                         </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {dayjs(inquiry.createdAt).format("HH:mm")}
+                        </Typography>
                       </>
                     ) : (
-                      dayjs(inquiry.createdAt).format("YYYY/MM/DD")
+                      dayjs(inquiry.createdAt).format("YYYY/MM/DD HH:mm")
                     )}
                   </TableCell>
-                  {!isMobile && (
-                    <TableCell sx={{ textAlign: "center" }}>
-                      {dayjs(inquiry.createdAt).format("HH:mm")}
-                    </TableCell>
-                  )}
                   <TableCell
                     sx={{
                       maxWidth: "140px",
