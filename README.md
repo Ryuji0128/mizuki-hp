@@ -403,6 +403,35 @@ docker compose exec mysql mysql -u app_user -papp_pass app_db
 
 バックアップは `backups/` に `app_db_YYYYMMDD_HHMMSS.sql.gz` として保存。7日間保持。
 
+### サーバー監視一括セットアップ
+
+```bash
+sudo bash scripts/setup-monitoring.sh
+```
+
+以下をまとめてインストール・設定:
+
+| ツール | 機能 | 動作 |
+|--------|------|------|
+| monitor.sh | サービス死活監視 | 5分ごとにコンテナ状態チェック、ダウン時メール通知＋自動復旧 |
+| fail2ban | 不正アクセスブロック | SSH: 3回失敗→24h BAN / Nginx: bot・404連打をブロック |
+| logwatch | 日次ログレポート | 毎朝7:00にログサマリーをメール送信 |
+
+### fail2ban 操作
+
+```bash
+fail2ban-client status          # 全jail一覧
+fail2ban-client status sshd     # SSH jail詳細
+fail2ban-client unban <IP>      # 手動解除
+```
+
+設定ファイル: `fail2ban/jail.local`, `fail2ban/filter.d/nginx-404.conf`
+
+### Logwatch
+
+設定ファイル: `logwatch/logwatch.conf`
+手動実行: `logwatch --output stdout --detail High`
+
 ## その他設定
 
 ### メール送信 (nodemailer)
