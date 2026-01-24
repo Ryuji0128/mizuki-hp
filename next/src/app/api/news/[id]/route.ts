@@ -33,8 +33,17 @@ export async function PUT(
   const { id } = await params;
   const session = await auth();
 
-  if (!session) {
+  if (!session?.user?.email) {
     return NextResponse.json({ error: "未ログインです" }, { status: 401 });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { role: true },
+  });
+
+  if (!user || user.role !== "ADMIN") {
+    return NextResponse.json({ error: "権限がありません" }, { status: 403 });
   }
 
   const data = await request.json();
@@ -65,8 +74,17 @@ export async function DELETE(
   const { id } = await params;
   const session = await auth();
 
-  if (!session) {
+  if (!session?.user?.email) {
     return NextResponse.json({ error: "未ログインです" }, { status: 401 });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { role: true },
+  });
+
+  if (!user || user.role !== "ADMIN") {
+    return NextResponse.json({ error: "権限がありません" }, { status: 403 });
   }
 
   try {
