@@ -129,7 +129,7 @@ export default function Header() {
                   sx={{
                     ml: 1,
                     fontSize: { xs: "18px", md: "24px" },
-                    color: "primary.main",
+                    color: "text.primary",
                     fontWeight: 600,
                     whiteSpace: "nowrap",
                   }}
