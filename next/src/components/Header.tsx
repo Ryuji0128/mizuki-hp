@@ -83,7 +83,7 @@ export default function Header() {
     { title: "診療案内", href: "/consultation" },
     { title: "内視鏡検査", href: "/endoscopy" },
     { title: "在宅医療", href: "/home-medical-care" },
-    { title: "美容・健康", href: "/beauty" },
+    { title: "ワクチン接種", href: "/vaccine" },
     { title: "医師紹介", href: "/doctor" },
     { title: "アクセス", href: "/access" },
     { title: "お問い合わせ", href: "/contact" },

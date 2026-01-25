@@ -8,6 +8,8 @@ import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import LocalParkingIcon from "@mui/icons-material/LocalParking";
 import PhoneIcon from "@mui/icons-material/Phone";
+import FaxIcon from "@mui/icons-material/Fax";
+import EmailIcon from "@mui/icons-material/Email";
 
 function InfoRow({
   icon,
@@ -96,7 +98,7 @@ export default function Message01() {
             icon={<LocationOnIcon sx={{ color: "#2a7d8f", fontSize: 22 }} />}
             label="所在地"
           >
-            〒921-8801<br />
+            〒921-0201<br />
             石川県金沢市みずき1丁目3-5
           </InfoRow>
 
@@ -104,7 +106,21 @@ export default function Message01() {
             icon={<PhoneIcon sx={{ color: "#2a7d8f", fontSize: 22 }} />}
             label="電話番号"
           >
-            076-274-2537
+            076-255-0337
+          </InfoRow>
+
+          <InfoRow
+            icon={<FaxIcon sx={{ color: "#2a7d8f", fontSize: 22 }} />}
+            label="FAX"
+          >
+            076-255-1211
+          </InfoRow>
+
+          <InfoRow
+            icon={<EmailIcon sx={{ color: "#2a7d8f", fontSize: 22 }} />}
+            label="メール"
+          >
+            info@mizuki-clinic.jp
           </InfoRow>
 
           <InfoRow
@@ -118,8 +134,7 @@ export default function Message01() {
             icon={<DirectionsCarIcon sx={{ color: "#2a7d8f", fontSize: 22 }} />}
             label="お車でお越しの方"
           >
-            金沢西インターチェンジより約10分<br />
-            県道25号線（金沢美川小松線）沿い
+            金沢東インターチェンジ（国道8号線）より約5分<br />
           </InfoRow>
 
           <InfoRow

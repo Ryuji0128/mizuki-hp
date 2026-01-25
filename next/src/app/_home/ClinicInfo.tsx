@@ -75,7 +75,7 @@ export default function Message02() {
                 lineHeight: 1.6,
               }}
             >
-              〒920-0201 石川県金沢市みずき1丁目3-5
+              〒921-0201 石川県金沢市みずき1丁目3-5
             </Typography>
           </Stack>
         </Grid>
@@ -89,9 +89,11 @@ export default function Message02() {
             </Typography>
             <Typography
               color="text.secondary"
-              sx={{ fontSize: { xs: "1.2rem", md: "1.4rem" } }}
+              sx={{ fontSize: { xs: "1rem", md: "1.2rem" }, lineHeight: 1.8 }}
             >
-              076-255-0337
+              TEL：076-255-0337<br />
+              FAX：076-255-1211<br />
+              メール：info@mizuki-clinic.jp
             </Typography>
           </Stack>
         </Grid>
