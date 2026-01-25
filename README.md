@@ -6,6 +6,8 @@
 
 ### 主な機能
 - クリニック紹介・診療案内ページ
+- 内視鏡検査・在宅医療・ワクチン接種の案内
+- オンライン診療の案内
 - 院長俳句展（縦書き表示、旧サイトからの移行データ含む）
 - お知らせ管理（管理画面からCRUD操作）
 - ブログ（俳句）投稿管理
@@ -214,9 +216,20 @@ mizuki-hp/
     └── src/
         ├── app/
         │   ├── page.tsx            # トップページ
+        │   ├── _home/              # トップページ用コンポーネント
+        │   ├── discription/        # クリニック概要
+        │   ├── consultation/       # 診療案内
+        │   ├── endoscopy/          # 内視鏡検査
+        │   ├── home-medical-care/  # 在宅医療
+        │   ├── vaccine/            # ワクチン接種
+        │   ├── doctor/             # 医師紹介
+        │   ├── access/             # アクセス
+        │   ├── contact/            # お問い合わせ
+        │   ├── online/             # オンライン診療
         │   ├── blog/               # 院長俳句展
         │   ├── news/               # お知らせ一覧
-        │   ├── contact/            # お問い合わせ
+        │   ├── recruit/            # 採用情報
+        │   ├── privacy-policy/     # プライバシーポリシー
         │   ├── portal-login/       # 管理者ログイン
         │   ├── portal-admin/       # 管理者ポータル
         │   │   ├── page.tsx        # ダッシュボード
@@ -236,23 +249,41 @@ mizuki-hp/
 
 ## ページ一覧
 
+### 公開ページ
+
 | パス | 内容 |
 |------|------|
 | `/` | トップページ |
-| `/blog` | 院長俳句展（縦書き、5-7-5段下げ表示） |
-| `/news` | お知らせ一覧 |
-| `/contact` | お問い合わせフォーム |
-| `/consultation` | 診療時間 |
-| `/doctor` | 院長紹介 |
-| `/services` | 診療案内 |
-| `/access` | アクセス |
+| `/discription` | クリニック概要 |
+| `/consultation` | 診療案内・診療時間 |
 | `/endoscopy` | 内視鏡検査 |
+| `/home-medical-care` | 在宅医療 |
+| `/vaccine` | ワクチン接種 |
+| `/doctor` | 医師紹介 |
+| `/access` | アクセス |
+| `/contact` | お問い合わせフォーム |
 | `/online` | オンライン診療 |
+| `/blog` | 院長俳句展（縦書き、5-7-5段下げ表示） |
+| `/blog/[year]/[month]` | 俳句アーカイブ（年月別） |
+| `/news` | お知らせ一覧 |
 | `/recruit` | 採用情報 |
+| `/company` | 会社概要 |
+| `/services` | サービス案内 |
+| `/privacy-policy` | プライバシーポリシー |
+| `/terms-of-service` | 利用規約 |
+
+### 管理者ページ
+
+| パス | 内容 |
+|------|------|
 | `/portal-login` | 管理者ログイン |
 | `/portal-admin` | 管理ダッシュボード |
 | `/portal-admin/blog` | 俳句投稿管理 |
+| `/portal-admin/blog/new` | 俳句新規作成 |
+| `/portal-admin/blog/edit/[id]` | 俳句編集 |
 | `/portal-admin/news` | お知らせ管理 |
+| `/portal-admin/news/new` | お知らせ新規作成 |
+| `/portal-admin/news/edit/[id]` | お知らせ編集 |
 | `/portal-admin/inquiry` | お問い合わせ一覧 |
 
 ## DBスキーマ

@@ -7,7 +7,6 @@ import React from "react";
 const BusinessIntroduction: React.FC = () => {
   const titlesOfPresidentMessageService = ["院長メッセージ"];
   const titlesOfCompanyOutline = ["経歴"];
-  // const titlesOfCompanyHistory = ["経歴"];
 
   const titlesWidth = {
     xs: themeConstants.custom.subTitle.widthXs,
@@ -38,13 +37,6 @@ const BusinessIntroduction: React.FC = () => {
         imageSrc="/doctor/doctor2.png"
         imageWidth={200}
       />
-      {/* 沿革 */}
-      {/* <ResponsiveAdjustmentContainer
-        titlesWidth={titlesWidth}
-        contentWidth={contentWidth}
-        titles={titlesOfCompanyHistory}
-        rightComponent={<DoctorHistory />}
-      /> */}
     </>
   );
 };
