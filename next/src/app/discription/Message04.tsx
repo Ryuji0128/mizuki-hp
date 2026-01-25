@@ -24,10 +24,10 @@ export default function Message03() {
           浅ノ川総合病院
         </ListItem>
         <ListItem sx={{ display: "list-item", py: 0.3 }}>
-          CHO金沢病院
+          JCHO金沢病院
         </ListItem>
         <ListItem sx={{ display: "list-item", py: 0.3 }}>
-          石川県済生会病院
+          石川県済生会金沢病院
         </ListItem>
         <ListItem sx={{ display: "list-item", py: 0.3 }}>
           金沢聖霊総合病院

@@ -25,10 +25,10 @@ const contents = [
         link: "/home-medical-care",
     },
     {
-        title: "美容・健康",
-        color: "#c0ca33",
-        image: "/beauty/beauty3.png",
-        link: "/beauty",
+        title: "ワクチン接種",
+        color: "#26a69a",
+        image: "/beauty/beauty1.png",
+        link: "/vaccine",
     },
 ];
 
