@@ -136,7 +136,7 @@ export default function ContactForm({ recaptchaSiteKey }: ContactFormProps) {
       >
         <Typography
           variant="body1"
-          sx={{ color: "text.secondary", lineHeight: 2, mb: 4 }}
+          sx={{ color: "text.secondary", lineHeight: 2, mb: 4, textAlign: "left" }}
         >
           ご質問・ご相談のある方はお気軽にお問い合わせください。
           <br />

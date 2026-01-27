@@ -75,7 +75,9 @@ export default function Message02() {
                 lineHeight: 1.6,
               }}
             >
-              〒921-0201 石川県金沢市みずき1丁目3-5
+              〒921-0201
+              <br />
+              石川県金沢市みずき1丁目3-5
             </Typography>
           </Stack>
         </Grid>
