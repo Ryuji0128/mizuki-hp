@@ -8,7 +8,6 @@ const PrivacyPolicyMainTitle = () => {
         japanseTitle="プライバシーポリシー"
         englishTitle="Privacy Policy"
       ></PageMainTitle>
-      {/* <UnderConstructionNotice /> */}
     </BaseContainer>
   );
 };

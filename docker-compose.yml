@@ -12,7 +12,6 @@ services:
       - NEXTAUTH_TRUST_HOST=true
     volumes:
       - ./uploads:/app/public/uploads
-    command: sh -c "npx prisma db push && yarn start -H 0.0.0.0 -p 3000"
     depends_on:
       - mysql
     restart: "no"

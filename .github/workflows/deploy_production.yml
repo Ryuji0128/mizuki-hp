@@ -57,10 +57,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=gha
-          build-args: |
-            DATABASE_URL=mysql://test:test@localhost:3306/test
-            AUTH_SECRET=${{ secrets.AUTH_SECRET }}
-            NEXTAUTH_URL=https://mizuki-clinic.online
+          cache-to: type=gha,mode=max
 
   deploy:
     needs: build-and-push
@@ -102,8 +99,21 @@ jobs:
             echo "Waiting for containers to be ready..."
             sleep 10
 
+            echo "Checking SSL certificate..."
+            CERT_PATH="./certbot/conf/live/mizuki-clinic.online/fullchain.pem"
+            if [ ! -f "$CERT_PATH" ]; then
+              echo "SSL certificate not found. Obtaining certificate..."
+              docker compose run --rm certbot
+              echo "Restarting nginx with SSL..."
+              docker compose restart nginx
+            else
+              echo "SSL certificate exists. Checking for renewal..."
+              docker compose run --rm certbot renew --quiet || true
+              docker compose restart nginx
+            fi
+
             echo "Running database migrations..."
-            docker compose exec -T next npx prisma migrate deploy || echo "Migration skipped or no pending migrations"
+            docker compose exec -T next node node_modules/prisma/build/index.js migrate deploy || echo "Migration skipped or no pending migrations"
 
             echo "Cleaning up old images..."
             docker image prune -f
