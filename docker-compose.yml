@@ -12,10 +12,11 @@ services:
       - NEXTAUTH_TRUST_HOST=true
     volumes:
       - ./uploads:/app/public/uploads
+    command: sh -c "node node_modules/prisma/build/index.js db push --skip-generate && node server.js"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     restart: "no"
-    # mem_limit: 512m
 
   mysql:
     image: mysql:8.0
@@ -31,6 +32,12 @@ services:
     mem_limit: 256m
     volumes:
       - ./mysql/data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   nginx:
     image: nginx:latest
@@ -42,11 +49,12 @@ services:
       - SERVER_NAME=${SERVER_NAME:-localhost}
     volumes:
       - ./nginx/default.conf.template:/etc/nginx/conf.d/default.conf.template:ro
+      - ./nginx/docker-entrypoint.sh:/docker-entrypoint.sh:ro
       - ./certbot/conf:/etc/letsencrypt:ro
       - ./certbot/www:/var/www/certbot:ro
       - ./uploads:/var/www/uploads:ro
       - /var/log/nginx:/var/log/nginx
-    command: /bin/sh -c "envsubst '$$SERVER_NAME' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+    entrypoint: ["/bin/sh", "/docker-entrypoint.sh"]
     depends_on:
       - next
 
@@ -56,3 +64,4 @@ services:
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
+    command: certonly --webroot --webroot-path=/var/www/certbot --email k_ryuji@setaseisakusyo.com --agree-tos --no-eff-email -d mizuki-clinic.online --keep-until-expiring
