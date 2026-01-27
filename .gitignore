@@ -58,6 +58,9 @@ node_modules/
 # mysql
 mysql/data/
 
+# certbot
+certbot/
+
 docker-compose.override.yml
 
 # backup
