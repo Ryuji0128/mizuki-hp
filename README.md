@@ -25,6 +25,8 @@
 - [ディレクトリ構成](#ディレクトリ構成)
 - [開発ルール](#開発ルール)
 - [DB運用](#db運用)
+- [セキュリティ](#セキュリティ)
+- [運用スクリプト](#運用スクリプト)
 - [その他設定](#その他設定)
 
 ## クイックスタート
@@ -63,17 +65,17 @@ docker compose down
 
 | サービス | コンテナ名 | ポート | 説明 |
 |---------|-----------|--------|------|
-| next | next_app | 2999:3000 | Next.jsアプリケーション (512MB) |
+| next | next_app | 2999:3000 | Next.js（standalone / ghcr.ioからpull） |
 | mysql | mysql_db | 3306 | MySQL 8.0 データベース (256MB) |
-| nginx | nginx_proxy | 80, 443 | リバースプロキシ + SSL終端 |
-| certbot | certbot | - | Let's Encrypt 証明書管理 |
+| nginx | nginx_proxy | 80, 443 | リバースプロキシ（SSL対応） |
+| certbot | certbot | - | SSL証明書管理 |
 
-### アーキテクチャ
+### アーキテクチャ（本番）
 
 ```
-[ブラウザ] → [nginx:443 SSL] → [next:3000] → [mysql:3306]
-                ↓
-         [certbot: Let's Encrypt]
+[ブラウザ] → [nginx:443] → [next:3000] → [mysql:3306]
+              ↑ SSL/TLS
+         [certbot] (証明書更新)
 ```
 
 ### ボリューム
@@ -136,13 +138,29 @@ docker compose exec next sh
 
 ## 本番デプロイ
 
-GitHub Actionsによる自動デプロイ（`.github/workflows/deploy_production.yml`）：
+GitHub Actionsによる自動デプロイ：
 
 1. `develop` → `main` へのPRをマージ（または手動実行）
-2. lint実行
-3. Dockerイメージをビルドし、GitHub Container Registry（ghcr.io）にプッシュ
-4. 本番サーバーへSSH接続し、最新イメージをpull & 起動
-5. Prismaマイグレーション自動実行
+2. Lint実行
+3. マルチステージビルドでDockerイメージをビルド & ghcr.ioにpush
+4. 本番サーバーでイメージをpull & 起動
+5. SSL証明書の自動取得/更新
+6. Prismaマイグレーション自動実行
+
+### Dockerイメージ
+
+マルチステージビルドにより軽量イメージを生成。本番サーバーではpullのみ行い、ビルドは行わない。
+
+### SSL証明書の自動管理
+
+デプロイ時に以下の処理が自動実行されます：
+
+- **初回デプロイ**: Let's Encrypt から SSL 証明書を自動取得
+- **2回目以降**: 証明書の有効期限をチェックし、必要に応じて更新
+
+nginx は証明書の有無を自動判定：
+- 証明書なし → HTTP のみで起動
+- 証明書あり → HTTPS 有効、HTTP→HTTPS リダイレクト
 
 ### 手動デプロイ
 
@@ -152,24 +170,6 @@ cd ~/mizuki-hp
 git pull origin main
 docker compose pull
 docker compose up -d
-docker compose exec next npx prisma migrate deploy
-```
-
-### SSL証明書 (初回)
-
-```bash
-docker compose run --rm certbot certonly \
-  --webroot -w /var/www/certbot \
-  -d mizuki-clinic.online \
-  --agree-tos --email <メールアドレス>
-docker compose restart nginx
-```
-
-### SSL証明書更新 (月1回cron推奨)
-
-```bash
-docker compose run --rm certbot renew --quiet
-docker compose restart nginx
 ```
 
 ## 主要技術スタック
@@ -204,9 +204,25 @@ mizuki-hp/
 ├── .github/workflows/          # GitHub Actions
 │   └── deploy_production.yml   # 本番デプロイワークフロー
 ├── nginx/
-│   └── default.conf.template   # Nginx設定テンプレート
+│   ├── default.conf.template   # Nginx設定テンプレート
+│   └── docker-entrypoint.sh    # SSL自動判定スクリプト
 ├── mysql/
 │   └── data/                   # MySQLデータ（gitignore）
+├── fail2ban/                   # fail2ban設定
+│   ├── jail.local              # メイン設定
+│   └── filter.d/               # フィルター定義
+│       ├── nginx-404.conf      # 404連打検出
+│       └── nginx-proxy.conf    # プロキシスキャン検出
+├── logwatch/                   # logwatch設定
+│   └── logwatch.conf           # レポート設定
+├── scripts/                    # 運用スクリプト
+│   ├── renew-ssl.sh            # SSL証明書更新
+│   ├── backup-db.sh            # DBバックアップ
+│   ├── monitor.sh              # サービス監視
+│   └── setup-monitoring.sh     # 監視セットアップ
+├── certbot/                    # SSL証明書（gitignore）
+│   ├── conf/                   # Let's Encrypt設定
+│   └── www/                    # チャレンジ用
 └── next/
     ├── Dockerfile              # Next.jsコンテナ設定
     ├── .env                    # 環境変数（gitignore）
@@ -214,37 +230,10 @@ mizuki-hp/
     │   ├── schema.prisma       # DBスキーマ定義
     │   └── migrations/         # マイグレーション履歴
     └── src/
-        ├── app/
-        │   ├── page.tsx            # トップページ
-        │   ├── _home/              # トップページ用コンポーネント
-        │   ├── discription/        # クリニック概要
-        │   ├── consultation/       # 診療案内
-        │   ├── endoscopy/          # 内視鏡検査
-        │   ├── home-medical-care/  # 在宅医療
-        │   ├── vaccine/            # ワクチン接種
-        │   ├── doctor/             # 医師紹介
-        │   ├── access/             # アクセス
-        │   ├── contact/            # お問い合わせ
-        │   ├── online/             # オンライン診療
-        │   ├── blog/               # 院長俳句展
-        │   ├── news/               # お知らせ一覧
-        │   ├── recruit/            # 採用情報
-        │   ├── privacy-policy/     # プライバシーポリシー
-        │   ├── portal-login/       # 管理者ログイン
-        │   ├── portal-admin/       # 管理者ポータル
-        │   │   ├── page.tsx        # ダッシュボード
-        │   │   ├── blog/           # 俳句投稿管理
-        │   │   ├── news/           # お知らせ管理
-        │   │   └── inquiry/        # お問い合わせ一覧
-        │   └── api/
-        │       ├── blog/           # 俳句 CRUD API
-        │       ├── news/           # お知らせ CRUD API
-        │       ├── email/          # メール送信・一覧 API
-        │       ├── admin/          # 管理者 API
-        │       └── recaptcha/      # reCAPTCHA検証
-        ├── components/             # 共通コンポーネント
-        ├── lib/                    # ユーティリティ
-        └── theme/                  # MUIテーマ設定
+        ├── app/                # ページ・APIルート
+        ├── components/         # 共通コンポーネント
+        ├── lib/                # ユーティリティ（rateLimit含む）
+        └── theme/              # MUIテーマ設定
 ```
 
 ## ページ一覧
@@ -396,30 +385,88 @@ docker compose exec mysql mysql -u app_user -papp_pass app_db
 - 句集（年月別アーカイブ）フィルタ機能
 - 旧サイトの画像は wixstatic.com から参照
 
-## セキュリティ対策
+## セキュリティ
 
-- **認証:** 強力な AUTH_SECRET (base64 32byte) / bcrypt パスワードハッシュ
-- **API保護:** ADMIN ロールチェック (News CRUD, 問い合わせ削除, アップロード)
-- **レート制限:** お問い合わせAPI (3回/分)、reCAPTCHA API (5回/分) にIPベースの制限
-- **アップロード:** 認証必須 / ファイル形式制限 (JPEG, PNG, GIF, WebP) / 5MB制限 / ランダムファイル名
-- **Nginx:** セキュリティヘッダー (HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, CSP) / バージョン情報非表示
-- **CSP:** Content-Security-Policy でスクリプト・スタイル・画像の読み込み元を制限
-- **フォーム:** reCAPTCHA v3 / XSS サニタイズ (xss) / バリデーション
-- **SSL:** Let's Encrypt + HTTP→HTTPS自動リダイレクト
-- **DB:** 強固なパスワード設定 / 自動バックアップ (7日間保持)
+### 実装済みセキュリティ機能
+
+| 機能 | 説明 |
+|-----|------|
+| NextAuth認証 | bcryptによるパスワードハッシュ / 強力な AUTH_SECRET (base64 32byte) |
+| ユーザーロール | ADMIN / VIEWER |
+| レート制限 | IP単位でのリクエスト制限（お問い合わせ: 3回/分、reCAPTCHA: 5回/分） |
+| API保護 | ADMIN権限チェック（Blog/News CRUD、問い合わせ削除、アップロード） |
+| reCAPTCHA v3 | フォームスパム対策 |
+| XSSサニタイズ | xssパッケージによる入力サニタイズ（email, blog, news） |
+| アップロード | 認証+ADMIN権限 / MIME制限 (JPEG, PNG, GIF, WebP) / 5MB制限 / UUIDファイル名 |
+| SSL | Let's Encrypt + HTTP→HTTPS自動リダイレクト |
+| DB | 強固なパスワード設定 / 自動バックアップ (7日間保持) |
+
+### Nginx セキュリティヘッダー
+
+`nginx/docker-entrypoint.sh`でHTTPS有効時に以下を設定：
+
+| ヘッダー | 値 | 効果 |
+|---------|-----|------|
+| `X-Frame-Options` | SAMEORIGIN | クリックジャッキング防止 |
+| `X-Content-Type-Options` | nosniff | MIMEスニッフィング防止 |
+| `X-XSS-Protection` | 1; mode=block | XSS攻撃防止 |
+| `Referrer-Policy` | strict-origin-when-cross-origin | リファラー情報制限 |
+| `Strict-Transport-Security` | max-age=31536000 | HTTPS強制（HSTS） |
+| `Content-Security-Policy` | script/style/img-src制限 | コンテンツインジェクション防止 |
+
+### fail2ban
+
+SSH/Nginxへの不正アクセス対策：
+
+| jail | フィルター | 検出対象 | maxretry | bantime |
+|------|-----------|---------|----------|---------|
+| sshd | sshd | SSH不正ログイン | 3 | 24h |
+| nginx-badbots | apache-badbots | 悪意のあるBot | 2 | 24h |
+| nginx-404 | nginx-404 | 404連打 | 10 | 1h |
+| nginx-http-auth | nginx-http-auth | 認証失敗 | 3 | 24h |
+| nginx-proxy | nginx-proxy | プロキシスキャン・脆弱性探索 | 2 | 24h |
+| nginx-limit-req | nginx-limit-req | レート制限超過 | 10 | 2h |
+
+```bash
+# 設定ファイルをコピー
+sudo cp fail2ban/jail.local /etc/fail2ban/
+sudo cp fail2ban/filter.d/* /etc/fail2ban/filter.d/
+
+# 再起動
+sudo systemctl restart fail2ban
+```
+
+### logwatch
+
+日次ログレポート：
+
+```bash
+# 設定ファイルをコピー
+sudo cp logwatch/logwatch.conf /etc/logwatch/conf/
+
+# テスト実行
+sudo logwatch --output stdout
+```
 
 ## 運用スクリプト
 
-`scripts/` ディレクトリにサーバー運用スクリプトを配置。
+`scripts/`ディレクトリに運用スクリプトを配置：
 
-### SSL証明書自動更新
+| スクリプト | 説明 |
+|-----------|------|
+| `renew-ssl.sh` | SSL証明書の更新 |
+| `backup-db.sh` | DBバックアップ（7日間保持） |
+| `monitor.sh` | サービス死活監視 |
+| `setup-monitoring.sh` | 監視環境セットアップ |
+
+### SSL証明書更新
 
 ```bash
 # 手動実行
 ./scripts/renew-ssl.sh
 
-# cron設定（毎月1日 3:00）
-0 3 1 * * /root/mizuki-hp/scripts/renew-ssl.sh >> /var/log/certbot-renew.log 2>&1
+# cron設定（毎日3時に実行）
+0 3 * * * /root/mizuki-hp/scripts/renew-ssl.sh >> /var/log/ssl-renew.log 2>&1
 ```
 
 ### DBバックアップ
@@ -428,25 +475,21 @@ docker compose exec mysql mysql -u app_user -papp_pass app_db
 # 手動実行
 ./scripts/backup-db.sh
 
-# cron設定（毎日 4:00）
-0 4 * * * /root/mizuki-hp/scripts/backup-db.sh >> /var/log/db-backup.log 2>&1
+# cron設定（毎日2時に実行）
+0 2 * * * /root/mizuki-hp/scripts/backup-db.sh >> /var/log/backup.log 2>&1
 ```
 
 バックアップは `backups/` に `app_db_YYYYMMDD_HHMMSS.sql.gz` として保存。7日間保持。
 
-### サーバー監視一括セットアップ
+### サービス監視
 
 ```bash
+# 監視セットアップ
 sudo bash scripts/setup-monitoring.sh
+
+# 死活監視実行
+./scripts/monitor.sh
 ```
-
-以下をまとめてインストール・設定:
-
-| ツール | 機能 | 動作 |
-|--------|------|------|
-| monitor.sh | サービス死活監視 | 5分ごとにコンテナ状態チェック、ダウン時メール通知＋自動復旧 |
-| fail2ban | 不正アクセスブロック | SSH: 3回失敗→24h BAN / Nginx: bot・404連打をブロック |
-| logwatch | 日次ログレポート | 毎朝7:00にログサマリーをメール送信 |
 
 ### fail2ban 操作
 
@@ -455,13 +498,6 @@ fail2ban-client status          # 全jail一覧
 fail2ban-client status sshd     # SSH jail詳細
 fail2ban-client unban <IP>      # 手動解除
 ```
-
-設定ファイル: `fail2ban/jail.local`, `fail2ban/filter.d/nginx-404.conf`
-
-### Logwatch
-
-設定ファイル: `logwatch/logwatch.conf`
-手動実行: `logwatch --output stdout --detail High`
 
 ## その他設定
 

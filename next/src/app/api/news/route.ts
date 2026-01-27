@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { getPrismaClient } from "@/lib/db";
+import xss from "xss";
 import { NextRequest, NextResponse } from "next/server";
 
 const prisma = getPrismaClient();
@@ -45,9 +46,9 @@ export async function POST(req: NextRequest) {
     const news = await prisma.news.create({
       data: {
         date: new Date(date),
-        title,
+        title: xss(title),
         contents,
-        url: url || null,
+        url: url ? xss(url) : null,
         color: color || "black",
         pinned: pinned || false,
       },
