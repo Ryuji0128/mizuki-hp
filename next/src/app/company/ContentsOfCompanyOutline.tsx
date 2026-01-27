@@ -3,9 +3,9 @@ import { Box, Grid, Typography } from "@mui/material";
 export default function CompanyInfoTable() {
   const companyData = [
     { label: "会社名", value: "みずきクリニック" },
-    { label: "代表者", value: "木村 竜次" },
+    { label: "代表者", value: "木村 寛伸" },
     { label: "設立年月日", value: "2023年8月" },
-    { label: "所在地", value: "〒521-0312 滋賀県米原市上野709" },
+    { label: "所在地", value: "〒921-0201 石川県金沢市みずき1丁目3-5" },
     { label: "メンバー", value: "10名" },
   ];
 

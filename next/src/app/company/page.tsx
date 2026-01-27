@@ -1,4 +1,3 @@
-import React from 'react';
 import CompanyInfoMainTitle from './CompanyInfoMainTitle';
 import CompanyInfoDetails from './CompanyInfoDetails';
 

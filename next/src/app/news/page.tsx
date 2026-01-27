@@ -1,4 +1,3 @@
-import React from 'react';
 import NewsPageMainTitle from './NewsPageMainTitle';
 import NewsPageDetails from './NewsPageDetails';
 

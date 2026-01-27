@@ -1,10 +1,6 @@
-
-// slick-carousel の CSS をインポート 
-// yarn add swiper
 "use client";
 
 import { Box, Typography } from "@mui/material";
-import React from "react";
 import { Autoplay, Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 

@@ -1,4 +1,3 @@
-import React from "react";
 import LoginContents from "./LoginContents";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
