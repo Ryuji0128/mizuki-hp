@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { getPrismaClient } from "@/lib/db";
+import xss from "xss";
 import { NextResponse } from "next/server";
 
 const prisma = getPrismaClient();
@@ -52,10 +53,10 @@ export async function PUT(
     const updated = await prisma.news.update({
       where: { id: Number(id) },
       data: {
-        title: data.title,
+        title: data.title ? xss(data.title) : undefined,
         date: new Date(data.date),
         contents: data.contents,
-        url: data.url || null,
+        url: data.url ? xss(data.url) : null,
         color: data.color || "black",
         pinned: data.pinned || false,
       },

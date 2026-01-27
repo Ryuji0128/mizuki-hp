@@ -1,31 +1,42 @@
-// siteUrlに環境変数を使うべきだが、本ファイルがjs指定で読み込まれるため、envConfigは使用不可。
-
-const locs = [
-  "/",
-  "/contact",
-  "/news",
-];
+/**
+ * next-sitemap 設定ファイル
+ * @see https://github.com/iamvishnusankar/next-sitemap
+ *
+ * Google向け最適化:
+ * - changefreq と priority は Google が無視するため使用しない
+ * - lastmod のみを設定
+ */
 
 module.exports = {
-  siteUrl: "https://mizuki-clinic.online", // サイトのベースURL
-  generateRobotsTxt: true, // robots.txt を生成
-  sitemapSize: 5000, // 1つのサイトマップに含めるURL数
-  exclude: ["/portal-admin*", "/portal-login*"], // サイトマップから除外するパス、ニュース登録用portal-adminページと管理者用portal-loginページを作成すると想定
-  additionalPaths: async () => [ // サイトマップに含める追加のパス（動的ページとして認識され、自動捕捉されないため）
-    ...locs.map(loc => ({ loc, changefreq: "monthly", priority: 0.7, lastmod: new Date().toISOString() })),
+  siteUrl: "https://mizuki-clinic.online",
+  generateRobotsTxt: true,
+  sitemapSize: 5000,
+
+  // サイトマップから除外するパス
+  exclude: [
+    "/portal-admin*",
+    "/portal-login*",
+    "/api/*",
   ],
-  transform: async (config, path) => ({
-    loc: `${config.siteUrl}${path}`, // ルート以外の全てのpathをサイトマップに含める
-    changefreq: "monthly", // ページの更新頻度、当面は変更がないと想定し、デフォルトのdailyからmonthlyに設定
-    priority: path === "/" ? 1.0 : 0.7, // デフォルトは全て0.7のため、トップページのみ1.0に設定
-    lastmod: new Date().toISOString(),
-  }),
+
+  // robots.txt 設定
   robotsTxtOptions: {
     policies: [
       {
         userAgent: "*",
-        disallow: ["/portal-admin", "/portal-login"], // 除外するページ
+        allow: "/",
+        disallow: [
+          "/portal-admin",
+          "/portal-login",
+          "/api/",
+        ],
       },
     ],
   },
+
+  // URLのトランスフォーム（lastmodのみ設定）
+  transform: async (_config, path) => ({
+    loc: path,
+    lastmod: new Date().toISOString(),
+  }),
 };
