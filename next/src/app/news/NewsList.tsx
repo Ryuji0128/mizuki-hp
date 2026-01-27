@@ -8,7 +8,6 @@ import axios from "axios";
 import dayjs, { Dayjs } from "dayjs";
 import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useState } from "react";
-// import { newsMockdata } from "@/lib/mock";
 
 interface INewsList {
   id: number;

@@ -1,4 +1,3 @@
-import React from 'react';
 import ServicesInfoMainTitle from './ServicesInfoMainTitle';
 import ServicesInfoDetails from './ServicesInfoDetails';
 

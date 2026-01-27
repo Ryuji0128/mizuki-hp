@@ -1,4 +1,3 @@
-import React from "react";
 import PrivacyPolicyMainTitle from "./PrivacyPolicyMainTitle";
 import PrivacyPolicyDetails from "./PrivacyPolicyDetails";
 import { Box } from "@mui/material";
