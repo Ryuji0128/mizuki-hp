@@ -1,6 +1,6 @@
 #!/bin/bash
 
-domain="mizuki-clinic.online"
+domain="mizuki-clinic.jp"
 email=""  # ここにメールアドレスを設定
 staging=0 # テスト時は1に設定（Let's Encryptのレート制限回避）
 

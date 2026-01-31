@@ -73,7 +73,7 @@ echo "[4/4] cron 設定..."
 crontab -l 2>/dev/null | grep -v "mizuki" | grep -v "logwatch" > /tmp/crontab.tmp || true
 
 cat >> /tmp/crontab.tmp << CRON
-# === mizuki-clinic.online 監視 ===
+# === mizuki-clinic.jp 監視 ===
 # サービス死活監視 (5分ごと)
 */5 * * * * ${PROJECT_DIR}/scripts/monitor.sh
 # SSL証明書自動更新 (毎月1日 3:00)

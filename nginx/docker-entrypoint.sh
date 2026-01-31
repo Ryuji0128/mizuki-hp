@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-CERT_PATH="/etc/letsencrypt/live/mizuki-clinic.online/fullchain.pem"
+CERT_PATH="/etc/letsencrypt/live/mizuki-clinic.jp/fullchain.pem"
 
 # 環境変数を展開
 envsubst '${SERVER_NAME}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
@@ -16,8 +16,8 @@ server {
     listen 443 ssl;
     server_name ${SERVER_NAME};
 
-    ssl_certificate /etc/letsencrypt/live/mizuki-clinic.online/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/mizuki-clinic.online/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/mizuki-clinic.jp/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/mizuki-clinic.jp/privkey.pem;
 
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
