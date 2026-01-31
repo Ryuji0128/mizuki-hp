@@ -52,6 +52,7 @@ docker compose run --rm --entrypoint "\
     $staging_arg \
     --email $email \
     -d $domain \
+    -d www.$domain \
     --rsa-key-size 4096 \
     --agree-tos \
     --no-eff-email \
