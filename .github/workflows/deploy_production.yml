@@ -100,7 +100,7 @@ jobs:
             sleep 10
 
             echo "Checking SSL certificate..."
-            CERT_PATH="./certbot/conf/live/mizuki-clinic.online/fullchain.pem"
+            CERT_PATH="./certbot/conf/live/mizuki-clinic.jp/fullchain.pem"
             if [ ! -f "$CERT_PATH" ]; then
               echo "SSL certificate not found. Obtaining certificate..."
               docker compose run --rm certbot

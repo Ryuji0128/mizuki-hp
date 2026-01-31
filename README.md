@@ -108,7 +108,7 @@ NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your-site-key
 RECAPTCHA_SECRET_KEY=your-secret-key
 ```
 
-本番環境では `docker-compose.yml` の `environment` で `NEXTAUTH_URL=https://mizuki-clinic.online` が上書きされる。
+本番環境では `docker-compose.yml` の `environment` で `NEXTAUTH_URL=https://mizuki-clinic.jp` が上書きされる。
 
 ## 開発コマンド
 
@@ -516,7 +516,7 @@ SMTP経由でお問い合わせメール送信（管理者通知 + 自動返信�
 ### 外部画像ドメイン
 
 `next.config.ts` の `remotePatterns` に以下を許可：
-- `mizuki-clinic.online`（自サイト）
+- `mizuki-clinic.jp`（自サイト）
 - `static.wixstatic.com`（旧サイト俳句画像）
 
 ## ライセンス

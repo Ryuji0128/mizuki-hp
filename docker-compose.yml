@@ -8,7 +8,7 @@ services:
       - ./next/.env
     environment:
       - DATABASE_URL=mysql://app_user:${MYSQL_PASSWORD:-app_pass}@mysql:3306/app_db
-      - NEXTAUTH_URL=https://mizuki-clinic.online
+      - NEXTAUTH_URL=https://mizuki-clinic.jp
       - NEXTAUTH_TRUST_HOST=true
     volumes:
       - ./uploads:/app/public/uploads
@@ -64,4 +64,4 @@ services:
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
-    command: certonly --webroot --webroot-path=/var/www/certbot --email k_ryuji@setaseisakusyo.com --agree-tos --no-eff-email -d mizuki-clinic.online --keep-until-expiring
+    command: certonly --webroot --webroot-path=/var/www/certbot --email k_ryuji@setaseisakusyo.com --agree-tos --no-eff-email -d mizuki-clinic.jp --keep-until-expiring
