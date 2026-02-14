@@ -22,7 +22,7 @@ function getSmtpConfig(): SmtpConfig {
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT) || 465;
   const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const pass = process.env.SMTP_PASSWORD || process.env.SMTP_PASS; // SMTP_PASSWORD または SMTP_PASS をサポート
   const toAddress = process.env.CONTACT_TO_EMAIL || user || "";
 
   if (!host || !user || !pass || !toAddress) {
