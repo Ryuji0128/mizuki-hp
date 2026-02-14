@@ -27,7 +27,18 @@ export async function verifyContactRecaptcha(token: string): Promise<boolean> {
     success?: boolean;
     score?: number;
     action?: string;
+    "error-codes"?: string[];
   };
 
-  return Boolean(data.success) && Number(data.score ?? 0) >= 0.5 && data.action === "contact";
+  // デバッグ用ログ出力
+  console.log("[reCAPTCHA] Response:", JSON.stringify(data));
+  console.log("[reCAPTCHA] success:", data.success);
+  console.log("[reCAPTCHA] score:", data.score);
+  console.log("[reCAPTCHA] action:", data.action);
+  console.log("[reCAPTCHA] error-codes:", data["error-codes"]);
+
+  const result = Boolean(data.success) && Number(data.score ?? 0) >= 0.5 && data.action === "contact";
+  console.log("[reCAPTCHA] Final result:", result);
+
+  return result;
 }
