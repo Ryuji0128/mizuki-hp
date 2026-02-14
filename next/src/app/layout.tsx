@@ -12,7 +12,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "みずきクリニック",
   description:
-    "みずきクリニックは、Webアプリケーションやモバイルアプリの開発を中心に、多様なプロジェクトで信頼を得ているエンジニアチームです。先進技術を用いた、最適なソリューションを提供します。",
+    "みずきクリニックは、地域の皆様の健康を支える医療機関です。一般診療からオンライン診療、各種ワクチン接種まで、幅広い医療サービスを提供しています。",
 };
 
 export default function RootLayout({
