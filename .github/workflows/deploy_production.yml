@@ -70,7 +70,7 @@ jobs:
 
     steps:
       - name: Deploy to Production Server
-        uses: appleboy/ssh-action@25ce8cbbcb08177468c7ff7125d99fa3da4dcb8e # v1.2.0
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
           GH_USERNAME: ${{ secrets.GH_USERNAME }}
