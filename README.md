@@ -51,13 +51,19 @@ cd mizuki-hp
 # 2. 環境変数ファイルを配置
 # next/.env ファイルを作成し、必要な値を設定（「環境変数の設定」セクション参照）
 
-# 3. Docker環境を起動（開発環境）
+# 3. Docker環境を起動
+
+## 開発環境（推奨）
+docker compose -f docker-compose.dev.yml up -d
+# コード変更が即座に反映、ホットリロード有効
+
+## 本番環境（テスト用）
 docker compose up -d
-# docker-compose.override.yml が自動適用され、開発モードで起動
+# ghcr.ioからイメージをpull、本番設定で起動
 
 # 4. ブラウザでアクセス
-# http://localhost:80 (Nginx経由)
-# http://localhost:3000 (Next.js直接 / 開発時)
+# http://localhost:3000 (開発環境)
+# http://localhost:80 (本番環境 - Nginx経由)
 ```
 
 ### 停止
@@ -68,12 +74,12 @@ docker compose down
 
 ## Docker環境の構成
 
-| サービス | コンテナ名 | ポート | 説明 |
-|---------|-----------|--------|------|
-| next | next_app | 2999:3000 (本番) / 3000:3000 (開発) | Next.js（standalone / ghcr.ioからpull） |
-| mysql | mysql_db | 3306 | MySQL 8.0 データベース (256MB制限) |
-| nginx | nginx_proxy | 80, 443 | リバースプロキシ（SSL対応） |
-| certbot | certbot | - | SSL証明書管理 |
+| サービス | コンテナ名 | ポート | 説明 | メモリ制限 |
+|---------|-----------|--------|------|---------|
+| next | next_app | 2999:3000 (本番) / 3000:3000 (開発) | Next.js（standalone / ghcr.ioからpull） | 384MB |
+| mysql | mysql_db | 3306 | MySQL 8.0 データベース | 320MB |
+| nginx | nginx_proxy | 80, 443 | リバースプロキシ（SSL対応） | 96MB |
+| certbot | certbot | - | SSL証明書管理（profiles: ssl） | - |
 
 ### アーキテクチャ（本番）
 
@@ -91,14 +97,21 @@ docker compose down
 
 ### 本番 vs 開発
 
-- **本番** (`docker-compose.yml`): ghcr.ioからpre-builtイメージをpull、起動時に `prisma db push` を自動実行
-- **開発** (`docker-compose.override.yml`が自動適用): ローカルビルド、ホットリロード対応、`yarn dev`で起動
+- **本番** (`docker-compose.yml`): ghcr.ioからpre-builtイメージをpull、`node server.js`で起動
+  - メモリ最適化: Next.js 384MB, MySQL 320MB, Nginx 96MB
+  - 環境変数: `NODE_ENV=production`, `NEXTAUTH_URL=https://mizuki-clinic.jp`
+- **開発** (`docker-compose.dev.yml`): ローカルコードをマウント、ホットリロード対応、`npm run dev`で起動
+  - ポート: 3000:3000（直接アクセス可能）
+  - ボリュームマウント: `./next:/app`（コード変更即反映）
+  - 詳細は [README.dev.md](README.dev.md) を参照
 
 ### MySQLチューニング（本番）
 
-```
---innodb-buffer-pool-size=128M --key-buffer-size=16M --max-connections=30
---table-open-cache=200 --tmp-table-size=16M --max-heap-table-size=16M
+メモリ制限320MBに最適化:
+```bash
+--innodb-buffer-pool-size=96M --key-buffer-size=8M --max-connections=20
+--table-open-cache=128 --tmp-table-size=8M --max-heap-table-size=8M
+--performance_schema=OFF  # パフォーマンススキーマを無効化してメモリ節約
 ```
 
 ヘルスチェック付きで、Next.jsはMySQLの起動完了を待機してから起動。
@@ -128,18 +141,24 @@ RECAPTCHA_SECRET_KEY=your-secret-key
 ```
 
 本番環境では `docker-compose.yml` の `environment` で以下が上書きされる：
-- `NEXTAUTH_URL=https://mizuki-clinic.jp`
+- `NEXTAUTH_URL=https://mizuki-clinic.jp`（Secure Cookie自動有効化）
 - `NEXTAUTH_TRUST_HOST=true`
+- `NODE_ENV=production`
+- `NODE_OPTIONS=--max-old-space-size=256`（メモリ制限）
 - `DATABASE_URL`（`MYSQL_PASSWORD`環境変数から動的生成）
 
-開発環境では `docker-compose.override.yml` で以下が追加設定される：
-- `NEXT_PUBLIC_BASE_URL=http://localhost:3000`
-- `NEXT_PUBLIC_SITE_URL=http://localhost:3000`
+開発環境では `docker-compose.dev.yml` で以下が追加設定される：
+- `NEXTAUTH_URL=http://localhost:3000`
+- ボリュームマウント: `./next:/app`（コード変更即反映）
+- コマンド: `npm run dev`（ホットリロード）
 
 ## 開発コマンド
 
 ```bash
-# コンテナ起動（開発モード / override自動適用）
+# コンテナ起動（開発モード）
+docker compose -f docker-compose.dev.yml up -d
+
+# コンテナ起動（本番モード / テスト用）
 docker compose up -d
 
 # コンテナ停止
@@ -211,7 +230,7 @@ docker compose up -d
 ### フロントエンド
 - TypeScript 5.7
 - React 19
-- Next.js 15.1 (App Router, standalone output)
+- Next.js 15.1.11 (App Router, standalone output)
 - MUI (Material UI) 6.5
 - Tailwind CSS 3.4
 - Framer Motion 12
@@ -240,7 +259,16 @@ docker compose up -d
 ```
 mizuki-hp/
 ├── docker-compose.yml            # Docker Compose設定（本番）
-├── docker-compose.override.yml   # Docker Compose設定（開発用オーバーライド）
+├── docker-compose.dev.yml        # Docker Compose設定（開発環境）
+├── README.dev.md                 # 開発環境セットアップガイド
+├── CLAUDE.md                     # Claude Code向けプロジェクト説明
+├── .claude/                      # Claude Code設定
+│   ├── settings.json             # チーム共有設定（permissions等）
+│   ├── settings.local.json       # 個人設定（gitignore対象）
+│   ├── plans/                    # 計画モード生成ファイル
+│   └── skills/                   # 再利用可能なスキル
+│       ├── security-check/       # セキュリティ監査スキル
+│       └── docker-deploy/        # デプロイワークフロースキル
 ├── .github/workflows/            # GitHub Actions
 │   └── deploy_production.yml     # 本番デプロイワークフロー
 ├── nginx/
@@ -277,11 +305,23 @@ mizuki-hp/
     └── src/
         ├── app/                  # ページ・APIルート
         │   ├── _home/            # トップページ用コンポーネント
+        │   ├── api/              # API Routes
+        │   │   └── email/        # お問い合わせメール送信API
         │   ├── contents/         # コンテンツデータ（プライバシーポリシー等）
         │   ├── fonts/            # カスタムフォント
         │   └── types/            # TypeScript型定義
         ├── components/           # 共通コンポーネント
-        ├── lib/                  # ユーティリティ（rateLimit, validation等）
+        ├── lib/                  # ユーティリティ
+        │   ├── contact/          # お問い合わせ機能（モジュール分離）
+        │   │   ├── types.ts      # 型定義
+        │   │   ├── mailer.ts     # メール送信ロジック
+        │   │   ├── repository.ts # DB操作
+        │   │   ├── auth.ts       # 管理者認証
+        │   │   └── recaptcha.ts  # reCAPTCHA検証
+        │   ├── rateLimit.ts      # レート制限
+        │   ├── validation.ts     # 入力バリデーション
+        │   ├── date.ts           # 日付処理（JST対応）
+        │   └── db.ts             # Prismaクライアント
         └── theme/                # MUIテーマ設定
 ```
 
@@ -493,13 +533,16 @@ docker compose exec mysql mysql -u app_user -papp_pass app_db
 | 機能 | 説明 |
 |-----|------|
 | NextAuth認証 | bcryptによるパスワードハッシュ / 強力な AUTH_SECRET (base64 32byte) / Prisma Adapter |
+| Secure Cookies | HTTPS環境で自動的にセキュアクッキー有効化（`NEXTAUTH_URL`の`https://`を検出） |
 | ユーザーロール | ADMIN / EDITOR / VIEWER |
 | ミドルウェア | `/portal-admin/*` ルートの認証保護（未認証時は `/portal-login` にリダイレクト） |
-| レート制限 | IP単位でのリクエスト制限（お問い合わせ: 3回/分、reCAPTCHA: 5回/分） |
+| レート制限 | IP単位でのリクエスト制限（お問い合わせ: 3回/分）、nginx proxy環境対応<br>**制限**: インメモリMap実装（単一インスタンス前提、再起動でリセット） |
 | API保護 | ADMIN権限チェック（Blog/News CRUD、問い合わせ削除、アップロード） |
-| reCAPTCHA v3 | フォームスパム対策（スコア閾値: 0.5） |
-| XSSサニタイズ | xssパッケージによる入力サニタイズ（email, blog, news） |
+| reCAPTCHA v3 | フォームスパム対策（スコア閾値: 0.5）、開発環境では自動バイパス |
+| XSSサニタイズ | 二重防御: `xss`パッケージ + HTML escapeによる入力サニタイズ |
 | 入力バリデーション | Zod + カスタムバリデーションによる型安全な入力検証 |
+| 環境変数保護 | `.env`ファイル編集禁止（`.claude/settings.json`の`deny`リスト） |
+| シード保護 | 管理者パスワードのハードコード禁止（環境変数必須: `ADMIN_EMAIL`, `ADMIN_PASSWORD`） |
 | アップロード | 認証+ADMIN権限 / MIME制限 (JPEG, PNG, GIF, WebP) / 5MB制限 / UUIDファイル名 |
 | SSL | Let's Encrypt + HTTP→HTTPS自動リダイレクト + www→non-wwwリダイレクト |
 | DB | 強固なパスワード設定 / 自動バックアップ (7日間保持) |
@@ -613,9 +656,29 @@ fail2ban-client unban <IP>      # 手動解除
 
 ## その他設定
 
+### Claude Code設定
+
+`.claude/`ディレクトリにClaude Code関連の設定を配置：
+
+| 項目 | 説明 |
+|------|------|
+| `settings.json` | チーム共有設定（permissions、plansDirectory等） |
+| `settings.local.json` | 個人設定（gitignore対象） |
+| `skills/security-check/` | セキュリティ監査スキル（`/security-check`で起動） |
+| `skills/docker-deploy/` | デプロイワークフロースキル（`/docker-deploy`で起動） |
+
+**permissions設定**:
+- **allow**: `Edit(next/src/**)`, `Bash(npm run *)`, `Bash(docker compose *)`, `Bash(git *)`
+- **deny**: `Bash(rm -rf *)`, `Bash(git push --force *)`, `Edit(.env)`, `Write(.env)`
+
 ### メール送信 (nodemailer)
 
 SMTP経由でお問い合わせメール送信（管理者通知 + 自動返信）。
+
+**実装箇所**: `next/src/lib/contact/mailer.ts`
+- デュアル送信: 管理者への通知 + ユーザーへの自動返信
+- HTML escapeによるXSS対策
+- SMTP設定は環境変数から読み込み
 
 ### reCAPTCHA v3
 
@@ -638,6 +701,106 @@ binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 ```
 
 ネイティブ環境とAlpine Linux（Docker）の両方に対応。
+
+## コードアーキテクチャ
+
+### モジュール分離
+
+お問い合わせ機能は [next/src/lib/contact/](next/src/lib/contact/) に分離:
+
+| ファイル | 責務 |
+|---------|------|
+| `types.ts` | TypeScript型定義（`ContactPayload`, `ContactRequestBody`） |
+| `mailer.ts` | メール送信ロジック（nodemailer + HTML escape） |
+| `repository.ts` | データベース操作（Prisma） |
+| `auth.ts` | 管理者認証チェック |
+| `recaptcha.ts` | reCAPTCHA検証（環境別バイパス対応） |
+
+### API Route設計
+
+[next/src/app/api/email/route.ts](next/src/app/api/email/route.ts):
+```typescript
+POST   /api/email  - お問い合わせ送信（reCAPTCHA + レート制限 + XSS対策）
+GET    /api/email  - お問い合わせ一覧取得（ADMIN権限必須）
+DELETE /api/email  - お問い合わせ削除（ADMIN権限必須）
+```
+
+### セキュリティレイヤー
+
+1. **入力層**: XSS sanitize (`xss`パッケージ) + Zod validation
+2. **認証層**: NextAuth session check + role-based access control
+3. **レート制限**: IP + pathname ベースの制限（nginx proxy対応）
+4. **reCAPTCHA**: スコア0.5以上（本番環境のみ）
+5. **出力層**: HTML escape（メール本文）
+
+### 環境変数管理
+
+- **開発**: `.env`ファイル
+- **本番**: `docker-compose.yml`の`environment`で上書き
+- **保護**: `.claude/settings.json`で`.env`編集を禁止
+
+## 既知の制限事項と将来の改善
+
+### レート制限（Medium Priority）
+
+**現状**: インメモリMap実装
+- 単一プロセス前提（複数インスタンスで共有不可）
+- アプリケーション再起動でリセット
+- 実装: [next/src/lib/rateLimit.ts](next/src/lib/rateLimit.ts:13)
+
+**推奨改善**: Redis等の共有ストアへの移行
+```typescript
+// 将来的な実装例
+import { Redis } from 'ioredis';
+const redis = new Redis(process.env.REDIS_URL);
+
+export async function isRateLimited(req: NextRequest, options: RateLimitOptions): Promise<boolean> {
+  const key = `rate-limit:${ip}:${pathname}`;
+  const current = await redis.incr(key);
+  if (current === 1) {
+    await redis.expire(key, windowMs / 1000);
+  }
+  return current > max;
+}
+```
+
+**実施タイミング**: 複数インスタンス化が必要になった時点
+
+### その他の制約
+
+- **メモリ**: 1GB VPS環境に最適化（スケールアップ時は設定見直し必要）
+- **SSL証明書**: Let's Encryptの90日有効期限（自動更新実装済み）
+
+## 最新の変更履歴
+
+### 2026-02-14: セキュリティ強化 & サプライチェーン対策
+
+**セキュリティ修正**:
+- ✅ [.github/workflows/deploy_production.yml](.github/workflows/deploy_production.yml) - GitHub Actionsをcommit SHAでpin（タグ差し替え攻撃対策）
+- ✅ [next/src/lib/contact/recaptcha.ts](next/src/lib/contact/recaptcha.ts:4-6) - RECAPTCHA_BYPASSを本番環境で無効化固定
+- ✅ [next/src/auth.ts](next/src/auth.ts:8) - Secure Cookie検出を`AUTH_URL`から`NEXTAUTH_URL`に修正
+- ✅ [next/prisma/seed.ts](next/prisma/seed.ts:7-13) - 管理者パスワードのハードコード禁止、環境変数必須化
+- ✅ [docker-compose.yml](docker-compose.yml:61) - `latest`タグを削除、SHA-only運用に統一
+- ✅ [next/src/app/api/email/route.ts](next/src/app/api/email/route.ts:61-62) - メール送信→DB保存の順序に変更（重複防止）
+
+**デプロイ安定性向上**:
+- ✅ [.github/workflows/deploy_production.yml](.github/workflows/deploy_production.yml:112-128) - MySQL接続待機（POSIX互換ループ、コンテナ内環境変数使用、最大60秒待機、失敗時はデプロイ停止）
+- ✅ [.github/workflows/deploy_production.yml](.github/workflows/deploy_production.yml:130-135) - マイグレーション失敗時はデプロイ停止（エラー握りつぶし防止）
+- ✅ [.github/workflows/deploy_production.yml](.github/workflows/deploy_production.yml:139-148) - 初回SSL証明書取得失敗時の継続処理
+- ✅ [.github/workflows/deploy_production.yml](.github/workflows/deploy_production.yml:95-100) - `git reset --hard`でローカル状態を確実にリセット（警告コメント追加）
+
+**コードリファクタリング**:
+- ✅ お問い合わせ機能のモジュール分離（`next/src/lib/contact/`）
+- ✅ 二重XSS対策（`xss`パッケージ + HTMLエスケープ）
+- ✅ レート制限のnginx proxy対応（`x-real-ip`, `x-forwarded-for`ヘッダー検出）
+
+**開発環境改善**:
+- ✅ [docker-compose.dev.yml](docker-compose.dev.yml) - 開発専用設定（ボリュームマウント、ホットリロード）
+- ✅ [README.dev.md](README.dev.md) - 開発環境セットアップガイド
+- ✅ [.claude/](/.claude/) - Claude Code設定（skills, permissions）
+
+**パッケージ更新**:
+- ✅ Next.js 15.1.7 → 15.1.11
 
 ## ライセンス
 
