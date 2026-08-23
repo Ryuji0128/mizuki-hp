@@ -32,11 +32,7 @@ sender = fail2ban@mizuki-clinic.jp
 # 通知は monitor.sh / logwatch 側に任せ、ここは BAN に専念させる。
 #
 # メール通知を復活させたい場合は、先に必ず疎通確認すること:
-#   printf 'Subject: test
-To: info@setaseisakusyo.com
-
-test
-' | msmtp info@setaseisakusyo.com
+#   echo test | msmtp info@setaseisakusyo.com
 # その上で以下に変更する:
 #   action = %(action_mwl)s
 action = %(action_)s

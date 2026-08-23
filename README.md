@@ -739,6 +739,16 @@ grep -c "Found " /var/log/fail2ban.log
 
 `fail2ban/jail.local` の `[DEFAULT]` で `backend = polling` を明示している。
 
+**設定を反映する前に必ず構文チェックすること。** jail.local に構文エラーがあると fail2ban はサービスごと起動失敗し、防御が完全に停止する。
+
+```bash
+# fail2ban と同じパーサ(configparser)で検証
+python3 -c "import configparser;c=configparser.RawConfigParser();c.read('fail2ban/jail.local');print(c.sections())"
+
+# 反映後は必ず起動を確認
+sudo systemctl restart fail2ban && systemctl is-active fail2ban
+```
+
 また `action` は `%(action_)s`（BANのみ）にしている。以前の `action_mwl`（メール通知付き）はmsmtpの認証が失敗するとアクション起動に失敗し、**防御機構がメール送信の可否に依存する**危険な状態だった。通知は `monitor.sh` / logwatch 側の責務とする。
 
 ### fail2ban 操作
