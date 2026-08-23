@@ -86,8 +86,10 @@ cat >> /tmp/crontab.tmp << CRON
 # === mizuki-clinic.jp 監視 ===
 # サービス死活監視 (5分ごと)
 */5 * * * * ${PROJECT_DIR}/scripts/monitor.sh
-# SSL証明書自動更新 (毎月1日 3:00)
-0 3 1 * * ${PROJECT_DIR}/scripts/renew-ssl.sh >> /var/log/certbot-renew.log 2>&1
+# SSL証明書自動更新 (毎日 3:00)
+# certbot は残り30日未満の証明書のみ更新するため、毎日実行しても無駄な更新は走らない。
+# 月1回だと1度の失敗でそのまま失効するため、必ず毎日実行すること。
+0 3 * * * ${PROJECT_DIR}/scripts/renew-ssl.sh >> ${PROJECT_DIR}/certbot-renew.log 2>&1
 # DBバックアップ (毎日 4:00)
 0 4 * * * ${PROJECT_DIR}/scripts/backup-db.sh >> /var/log/db-backup.log 2>&1
 # Logwatch日次レポート (毎朝 7:00)
@@ -99,9 +101,7 @@ rm /tmp/crontab.tmp
 echo "  ✓ cron 設定完了"
 
 # ---- スクリプト実行権限 ----
-chmod +x "${PROJECT_DIR}/scripts/monitor.sh"
-chmod +x "${PROJECT_DIR}/scripts/renew-ssl.sh"
-chmod +x "${PROJECT_DIR}/scripts/backup-db.sh"
+chmod +x "${PROJECT_DIR}"/scripts/*.sh
 
 echo ""
 echo "=== セットアップ完了 ==="
@@ -110,7 +110,7 @@ echo "設定済み:"
 echo "  • サービス監視: 5分ごとにコンテナ状態チェック → ダウン時メール通知"
 echo "  • fail2ban: SSH(3回失敗→24h BAN) / Nginx不正アクセスブロック"
 echo "  • logwatch: 毎朝7:00にログサマリーを ${ALERT_EMAIL} に送信"
-echo "  • SSL更新: 毎月1日 3:00"
+echo "  • SSL更新: 毎日 3:00 (残り30日未満で自動更新 / 失敗時はメール通知)"
 echo "  • DBバックアップ: 毎日 4:00"
 echo ""
 echo "確認コマンド:"
@@ -118,3 +118,4 @@ echo "  fail2ban-client status         # fail2ban状態"
 echo "  fail2ban-client status sshd    # SSH jail詳細"
 echo "  crontab -l                     # cron一覧"
 echo "  cat /var/log/mizuki-monitor.log # 監視ログ"
+echo "  tail -50 ${PROJECT_DIR}/certbot-renew.log # SSL更新ログ"
