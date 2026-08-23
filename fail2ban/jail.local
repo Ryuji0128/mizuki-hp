@@ -2,6 +2,18 @@
 # /etc/fail2ban/jail.local にコピーして使用
 
 [DEFAULT]
+# ログの読み取り方式
+#
+# 重要: Ubuntu の /etc/fail2ban/jail.d/defaults-debian.conf は
+#   backend = systemd
+# を設定しており、これを上書きしないと journald だけを読む。
+# nginx は Docker コンテナで journald に書かないため、logpath を指定しても
+# 完全に無視され、fail2ban は永久に何も検知しない状態になる。
+# （実際に nginx 系 jail が長期間まったく機能していなかった）
+#
+# ファイルを直接読ませるため polling を明示する。
+backend = polling
+
 # デフォルトのBAN時間（24時間）
 bantime = 86400
 # 監視期間（10分）
@@ -11,8 +23,23 @@ maxretry = 5
 # BAN時の通知先メールアドレス
 destemail = info@mizuki-clinic.jp
 sender = fail2ban@mizuki-clinic.jp
-# アクション（メール通知 + iptables BAN）
-action = %(action_mwl)s
+
+# アクション: BAN のみ（メール通知なし）
+#
+# 以前は action_mwl（メール通知付き）だったが、msmtp の認証が失敗すると
+# アクションの起動に失敗し、BAN時のたびにエラーを吐き続けていた。
+# セキュリティの防御機構がメール送信の可否に依存するのは危険なため、
+# 通知は monitor.sh / logwatch 側に任せ、ここは BAN に専念させる。
+#
+# メール通知を復活させたい場合は、先に必ず疎通確認すること:
+#   printf 'Subject: test
+To: info@setaseisakusyo.com
+
+test
+' | msmtp info@setaseisakusyo.com
+# その上で以下に変更する:
+#   action = %(action_mwl)s
+action = %(action_)s
 
 # ----------------------------------
 # SSH保護
@@ -21,6 +48,8 @@ action = %(action_mwl)s
 enabled = true
 port = ssh
 filter = sshd
+# auth.log が rsyslog で出力されている前提。journald のみの環境なら
+# この jail だけ backend = systemd に戻すこと。
 logpath = /var/log/auth.log
 maxretry = 3
 bantime = 86400
