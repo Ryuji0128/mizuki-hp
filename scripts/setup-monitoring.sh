@@ -45,6 +45,37 @@ password       ${MAIL_PASSWORD}
 EOF
 
 chmod 600 /etc/msmtprc
+
+# cron を実行する一般ユーザーからも送れるようにする。
+# /etc/msmtprc は 600 root のため一般ユーザーは読めず、monitor.sh の通知が
+# 全て失敗する（実際にこれで障害通知が一通も届いていなかった）。
+CRON_USER="${SUDO_USER:-ubuntu}"
+CRON_HOME="$(getent passwd "$CRON_USER" | cut -d: -f6)"
+if [ -n "$CRON_HOME" ] && [ -d "$CRON_HOME" ]; then
+  cp /etc/msmtprc "${CRON_HOME}/.msmtprc"
+  # logfile は root 以外書けないため無効化する
+  sed -i 's#^logfile .*#logfile        ~/.msmtp.log#' "${CRON_HOME}/.msmtprc"
+  chown "$CRON_USER" "${CRON_HOME}/.msmtprc"
+  chmod 600 "${CRON_HOME}/.msmtprc"
+  echo "  ✓ ${CRON_HOME}/.msmtprc を作成 (cron ユーザー用)"
+fi
+
+# 認証が通るかここで必ず検証する。
+# パスワード誤りに気づかないと、監視も fail2ban の通知も全て黙って死ぬ。
+echo "  → メール送信テスト中..."
+if printf 'Subject: [setup] mizuki-hp 監視セットアップ
+From: monitor@%s
+To: %s
+
+セットアップ時の疎通確認メールです。
+'     "$(hostname)" "$ALERT_EMAIL" | msmtp "$ALERT_EMAIL" 2>/tmp/msmtp-test.err; then
+  echo "  ✓ メール送信成功 (${ALERT_EMAIL} を確認してください)"
+else
+  echo "  ✗ メール送信に失敗しました。パスワードを確認してください:"
+  sed 's/^/      /' /tmp/msmtp-test.err
+  echo "      → このままだと障害通知が一切届きません。"
+fi
+rm -f /tmp/msmtp-test.err
 echo "  ✓ msmtp 設定完了"
 
 # ---- 2. fail2ban ----
@@ -61,6 +92,16 @@ sed -i "s/port = ssh/port = ${SSH_PORT}/" /etc/fail2ban/jail.local
 
 # nginxログディレクトリ作成
 mkdir -p /var/log/nginx
+
+# nginx は Docker コンテナのため、Ubuntu 標準の logrotate 設定
+# (postrotate の invoke-rc.d) ではログを再オープンできない。
+# 再オープンされないと access.log が空のままになり、fail2ban が
+# 何も検知できなくなる（実際に84日間 nginx 系 jail が無効化されていた）。
+if [ -f "${PROJECT_DIR}/logrotate/nginx-docker.conf" ]; then
+  cp /etc/logrotate.d/nginx /etc/logrotate.d/nginx.bak 2>/dev/null || true
+  cp "${PROJECT_DIR}/logrotate/nginx-docker.conf" /etc/logrotate.d/nginx
+  echo "  ✓ logrotate の nginx 設定を Docker 対応版に置換"
+fi
 
 # fail2ban 起動
 systemctl enable fail2ban
@@ -79,19 +120,23 @@ echo "  ✓ logwatch 設定完了"
 # ---- 4. cron 設定 ----
 echo "[4/4] cron 設定..."
 
+# ログ出力先 (/var/log は root 所有で一般ユーザーの cron から書けないため)
+mkdir -p "${PROJECT_DIR}/logs"
+chown "$(stat -c %U "${PROJECT_DIR}")" "${PROJECT_DIR}/logs" 2>/dev/null || true
+
 # 既存のmizuki関連cronを削除して再設定
 crontab -l 2>/dev/null | grep -v "mizuki" | grep -v "logwatch" > /tmp/crontab.tmp || true
 
 cat >> /tmp/crontab.tmp << CRON
 # === mizuki-clinic.jp 監視 ===
-# サービス死活監視 (5分ごと)
-*/5 * * * * ${PROJECT_DIR}/scripts/monitor.sh
+# サービス死活監視 + SSL有効期限監視 (5分ごと)
+*/5 * * * * MONITOR_LOG_FILE=${PROJECT_DIR}/logs/monitor.log ${PROJECT_DIR}/scripts/monitor.sh >> ${PROJECT_DIR}/logs/monitor-cron.log 2>&1
 # SSL証明書自動更新 (毎日 3:00)
 # certbot は残り30日未満の証明書のみ更新するため、毎日実行しても無駄な更新は走らない。
 # 月1回だと1度の失敗でそのまま失効するため、必ず毎日実行すること。
 0 3 * * * ${PROJECT_DIR}/scripts/renew-ssl.sh >> ${PROJECT_DIR}/certbot-renew.log 2>&1
-# DBバックアップ (毎日 4:00)
-0 4 * * * ${PROJECT_DIR}/scripts/backup-db.sh >> /var/log/db-backup.log 2>&1
+# DBフルバックアップ (毎日 4:00 / 7日間保持)
+0 4 * * * ${PROJECT_DIR}/scripts/backup-db.sh >> ${PROJECT_DIR}/logs/db-backup.log 2>&1
 # Logwatch日次レポート (毎朝 7:00)
 0 7 * * * /usr/sbin/logwatch --output mail
 CRON

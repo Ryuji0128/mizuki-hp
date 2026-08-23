@@ -159,8 +159,15 @@ jobs:
               fi
             else
               echo "SSL certificate exists. Checking for renewal..."
-              docker compose --profile ssl -f docker-compose.yml run --rm certbot renew --quiet || true
-              docker compose -f docker-compose.yml restart nginx
+              # 失敗を握りつぶすと更新できていないことに気づけないため、
+              # デプロイは止めずに警告として必ず可視化する
+              if docker compose --profile ssl -f docker-compose.yml run --rm certbot renew --quiet; then
+                docker compose -f docker-compose.yml restart nginx
+              else
+                echo "::warning::SSL certificate renewal FAILED. Check certbot logs on the server."
+                echo "WARNING: SSL renewal failed. Nginx will restart with the existing certificate."
+                docker compose -f docker-compose.yml restart nginx
+              fi
             fi
 
             echo "Cleaning up old images..."

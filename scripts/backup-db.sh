@@ -1,6 +1,6 @@
 #!/bin/bash
 # MySQLバックアップスクリプト
-# cron設定例: 0 4 * * * /path/to/mizuki-hp/scripts/backup-db.sh
+# cron設定例: 0 4 * * * /path/to/mizuki-hp/scripts/backup-db.sh >> /path/to/mizuki-hp/logs/db-backup.log 2>&1
 
 cd "$(dirname "$0")/.."
 
@@ -12,17 +12,32 @@ KEEP_DAYS=7
 mkdir -p "$BACKUP_DIR"
 
 # mysqldump実行 + gzip圧縮
+# --no-tablespaces: app_user に PROCESS 権限が無いため、付けないと
+#   'Access denied; you need (at least one of) the PROCESS privilege(s)' が出る
 docker compose exec -T mysql mysqldump \
+  --no-tablespaces \
   -u "${MYSQL_USER:-app_user}" \
   -p"${MYSQL_PASSWORD:-app_pass}" \
   "${MYSQL_DATABASE:-app_db}" | gzip > "$BACKUP_FILE"
 
-if [ $? -eq 0 ]; then
-  echo "[$(date)] Backup created: $BACKUP_FILE"
-else
-  echo "[$(date)] ERROR: Backup failed!"
+# パイプラインでは $? が最後のコマンド(gzip)の終了コードになるため、
+# mysqldump が失敗しても成功と誤判定される。PIPESTATUS で dump 側を確認する。
+dump_status=${PIPESTATUS[0]}
+gzip_status=${PIPESTATUS[1]}
+
+if [ "$dump_status" -ne 0 ] || [ "$gzip_status" -ne 0 ]; then
+  echo "[$(date)] ERROR: Backup failed! (mysqldump=${dump_status}, gzip=${gzip_status})"
+  rm -f "$BACKUP_FILE"
   exit 1
 fi
+
+# ダンプが最後まで書き切れたかを完了マーカーで確認する
+if ! zcat "$BACKUP_FILE" | tail -5 | grep -q "Dump completed"; then
+  echo "[$(date)] ERROR: Backup is incomplete (完了マーカーなし): $BACKUP_FILE"
+  exit 1
+fi
+
+echo "[$(date)] Backup created: $BACKUP_FILE ($(du -h "$BACKUP_FILE" | cut -f1))"
 
 # 古いバックアップを削除
 find "$BACKUP_DIR" -name "*.sql.gz" -mtime +${KEEP_DAYS} -delete
