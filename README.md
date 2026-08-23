@@ -654,11 +654,23 @@ tail -50 ~/mizuki-hp/certbot-renew.log
 # 手動実行
 ./scripts/backup-db.sh
 
-# cron設定（毎日2時に実行）
-0 2 * * * /root/mizuki-hp/scripts/backup-db.sh >> /var/log/backup.log 2>&1
+# cron設定（毎日4時に実行）
+0 4 * * * /home/ubuntu/mizuki-hp/scripts/backup-db.sh >> /home/ubuntu/mizuki-hp/logs/db-backup.log 2>&1
 ```
 
 バックアップは `backups/` に `app_db_YYYYMMDD_HHMMSS.sql.gz` として保存。7日間保持。
+DB全体（全テーブル）が対象で、`backup-haiku.sh`（`Blog` テーブル + `uploads/` のみ・30日保持）とは役割が異なるため両方必要。
+
+`mysqldump | gzip` はパイプラインのため `$?` では gzip の結果しか見えず、dump が失敗しても
+成功と誤判定される。`PIPESTATUS` で mysqldump 側を判定し、さらに `Dump completed` マーカーの
+有無で書き切れているかを検証している。
+
+> **注意**: `/var/log` は root 所有のため、一般ユーザー（`ubuntu`）の cron からは書き込めない。
+> ログは `logs/` 配下に出力すること。`monitor.sh` のログ出力先は `MONITOR_LOG_FILE` で上書きできる。
+>
+> ```bash
+> */5 * * * * MONITOR_LOG_FILE=/home/ubuntu/mizuki-hp/logs/monitor.log /home/ubuntu/mizuki-hp/scripts/monitor.sh
+> ```
 
 ### サービス監視
 

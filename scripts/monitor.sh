@@ -9,7 +9,9 @@ cd "$(dirname "$0")/.."
 
 ALERT_EMAIL="info@setaseisakusyo.com"
 HOSTNAME=$(hostname)
-LOG_FILE="/var/log/mizuki-monitor.log"
+# /var/log は root 所有のため、ubuntu ユーザーの cron では書けない。
+# cron 側から MONITOR_LOG_FILE で書き込み可能なパスを指定する。
+LOG_FILE="${MONITOR_LOG_FILE:-/var/log/mizuki-monitor.log}"
 
 # チェック対象コンテナ
 CONTAINERS=("next_app" "mysql_db" "nginx_proxy")

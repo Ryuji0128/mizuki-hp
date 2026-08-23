@@ -79,19 +79,23 @@ echo "  ✓ logwatch 設定完了"
 # ---- 4. cron 設定 ----
 echo "[4/4] cron 設定..."
 
+# ログ出力先 (/var/log は root 所有で一般ユーザーの cron から書けないため)
+mkdir -p "${PROJECT_DIR}/logs"
+chown "$(stat -c %U "${PROJECT_DIR}")" "${PROJECT_DIR}/logs" 2>/dev/null || true
+
 # 既存のmizuki関連cronを削除して再設定
 crontab -l 2>/dev/null | grep -v "mizuki" | grep -v "logwatch" > /tmp/crontab.tmp || true
 
 cat >> /tmp/crontab.tmp << CRON
 # === mizuki-clinic.jp 監視 ===
-# サービス死活監視 (5分ごと)
-*/5 * * * * ${PROJECT_DIR}/scripts/monitor.sh
+# サービス死活監視 + SSL有効期限監視 (5分ごと)
+*/5 * * * * MONITOR_LOG_FILE=${PROJECT_DIR}/logs/monitor.log ${PROJECT_DIR}/scripts/monitor.sh >> ${PROJECT_DIR}/logs/monitor-cron.log 2>&1
 # SSL証明書自動更新 (毎日 3:00)
 # certbot は残り30日未満の証明書のみ更新するため、毎日実行しても無駄な更新は走らない。
 # 月1回だと1度の失敗でそのまま失効するため、必ず毎日実行すること。
 0 3 * * * ${PROJECT_DIR}/scripts/renew-ssl.sh >> ${PROJECT_DIR}/certbot-renew.log 2>&1
-# DBバックアップ (毎日 4:00)
-0 4 * * * ${PROJECT_DIR}/scripts/backup-db.sh >> /var/log/db-backup.log 2>&1
+# DBフルバックアップ (毎日 4:00 / 7日間保持)
+0 4 * * * ${PROJECT_DIR}/scripts/backup-db.sh >> ${PROJECT_DIR}/logs/db-backup.log 2>&1
 # Logwatch日次レポート (毎朝 7:00)
 0 7 * * * /usr/sbin/logwatch --output mail
 CRON
