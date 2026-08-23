@@ -68,6 +68,7 @@ docker-compose.local.yml
 # backup
 *.sql
 backups/
+logs/
 uploads/
 # claude code (personal settings only)
 .claude/settings.local.json

@@ -654,11 +654,64 @@ tail -50 ~/mizuki-hp/certbot-renew.log
 # 手動実行
 ./scripts/backup-db.sh
 
-# cron設定（毎日2時に実行）
-0 2 * * * /root/mizuki-hp/scripts/backup-db.sh >> /var/log/backup.log 2>&1
+# cron設定（毎日4時に実行）
+0 4 * * * /home/ubuntu/mizuki-hp/scripts/backup-db.sh >> /home/ubuntu/mizuki-hp/logs/db-backup.log 2>&1
 ```
 
 バックアップは `backups/` に `app_db_YYYYMMDD_HHMMSS.sql.gz` として保存。7日間保持。
+DB全体（全テーブル）が対象で、`backup-haiku.sh`（`Blog` テーブル + `uploads/` のみ・30日保持）とは役割が異なるため両方必要。
+
+`mysqldump | gzip` はパイプラインのため `$?` では gzip の結果しか見えず、dump が失敗しても
+成功と誤判定される。`PIPESTATUS` で mysqldump 側を判定し、さらに `Dump completed` マーカーの
+有無で書き切れているかを検証している。
+
+> **注意**: `/var/log` は root 所有のため、一般ユーザー（`ubuntu`）の cron からは書き込めない。
+> ログは `logs/` 配下に出力すること。`monitor.sh` のログ出力先は `MONITOR_LOG_FILE` で上書きできる。
+>
+> ```bash
+> */5 * * * * MONITOR_LOG_FILE=/home/ubuntu/mizuki-hp/logs/monitor.log /home/ubuntu/mizuki-hp/scripts/monitor.sh
+> ```
+
+### 通知基盤 (msmtp) — 監視の生命線
+
+監視やバックアップの通知は全て `msmtp` 経由で送られる。**ここが壊れると全ての監視が黙って無意味になる**ため、変更時は必ず疎通確認すること。
+
+過去に以下2つが同時に壊れており、障害通知が一通も届かない状態が続いていた:
+
+| 問題 | 症状 |
+|---|---|
+| `/etc/msmtprc` が `600 root` | 一般ユーザー（`ubuntu`）の cron から読めず `account default not found` で全送信失敗 |
+| SMTP 認証情報が誤り | root 実行時も `535 authentication failed` |
+
+fail2ban は `action_mwl`（メール通知付きBAN）を使うため、**メール送信の失敗で jail の起動自体が失敗する**。通知が壊れると防御まで止まる。
+
+```bash
+# 疎通確認（一般ユーザーとして実行すること）
+printf 'Subject: test
+To: info@setaseisakusyo.com
+
+test
+' | msmtp info@setaseisakusyo.com
+
+# 送信失敗はログに残る
+grep "ALERT SEND FAILED" ~/mizuki-hp/logs/monitor.log
+```
+
+### ログローテーション
+
+nginx は Docker コンテナのため、Ubuntu 標準の logrotate 設定（`postrotate` の `invoke-rc.d nginx rotate`）ではログを再オープンできない。ローテート後も古い inode に書き続け、新しい `access.log` は空のままになる。`notifempty` により翌日以降のローテートもスキップされ、**fail2ban が空ファイルを監視し続ける**。
+
+実際に 2026-05-31〜08-23 の84日分（125MB・692,694リクエスト）が1ファイルに溜まり、その間 nginx 系 jail が完全に無効化されていた。
+
+```bash
+# Docker 対応版に置換
+sudo cp logrotate/nginx-docker.conf /etc/logrotate.d/nginx
+
+# 動作確認
+sudo logrotate -d /etc/logrotate.d/nginx
+```
+
+アプリのログ（`logs/`, `certbot-renew.log`）は `/etc/logrotate.d` に置けないため、`logrotate/app.conf` をホームにコピーして cron で回す。
 
 ### サービス監視
 
