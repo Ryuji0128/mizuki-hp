@@ -60,8 +60,11 @@ const oldHaikuData = [
 ];
 
 function getOldHaiku(): HaikuData[] {
-    return oldHaikuData.map((item) => ({
-        id: `old-${item.title}`,
+    // id はタイトルではなく日付+連番で生成する。
+    // 旧データには同名の句（例:「冬の虹」が2件）があり、
+    // タイトル由来だと React の key が衝突して描画がずれる。
+    return oldHaikuData.map((item, index) => ({
+        id: `old-${item.date}-${index}`,
         title: item.title,
         content: item.content,
         createdAt: new Date(item.date).toISOString(),
@@ -110,6 +113,33 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
     const totalPages = Math.ceil(filteredBlogs.length / perPage);
     const startIndex = (currentPage - 1) * perPage;
     const currentBlogs = filteredBlogs.slice(startIndex, startIndex + perPage);
+
+    // ページ送りのリンク。年月フィルタを保持しないと
+    // 絞り込み中にページを送った瞬間に全件表示へ戻ってしまう。
+    const pageHref = (page: number) => {
+        const q = new URLSearchParams();
+        if (filterYear && filterMonth) {
+            q.set("year", filterYear);
+            q.set("month", filterMonth);
+        }
+        if (page > 1) q.set("page", String(page));
+        const qs = q.toString();
+        return qs ? `/blog?${qs}` : "/blog";
+    };
+
+    // ページ番号は全件描画せず、前後1ページ + 最初/最後だけ出す。
+    // 句が増え続けるため、全部並べるとモバイルで横に潰れる。
+    // null は「…」を表す。
+    const pageItems: (number | null)[] = [];
+    for (let page = 1; page <= totalPages; page++) {
+        const isEdge = page === 1 || page === totalPages;
+        const isNearCurrent = Math.abs(page - currentPage) <= 1;
+        if (isEdge || isNearCurrent) {
+            pageItems.push(page);
+        } else if (pageItems[pageItems.length - 1] !== null) {
+            pageItems.push(null);
+        }
+    }
 
     // --- アーカイブグループ ---
     const archiveMap = blogs.reduce<Record<string, number>>((acc, blog) => {
@@ -247,14 +277,17 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
                                 if (!match || !match[1] || !match[2]) return null;
                                 const year = match[1];
                                 const month = match[2];
+                                // モバイルのチップと同様に選択中の月を強調する
+                                const isActive = filterYear === year && filterMonth === month;
                                 return (
                                     <li key={key}>
                                         <Link
                                             href={`/blog?year=${year}&month=${month}`}
-                                            className="flex justify-between items-center text-gray-600 hover:text-green-800 transition py-1 px-2 rounded hover:bg-green-50"
+                                            aria-current={isActive ? "page" : undefined}
+                                            className={`flex justify-between items-center transition py-1 px-2 rounded hover:bg-green-50 ${isActive ? "bg-green-50 text-green-800 font-semibold" : "text-gray-600 hover:text-green-800"}`}
                                         >
                                             <span className="tracking-wider">{key}</span>
-                                            <span className="text-xs text-gray-400">({count}句)</span>
+                                            <span className={`text-xs ${isActive ? "text-green-700" : "text-gray-400"}`}>({count}句)</span>
                                         </Link>
                                     </li>
                                 );
@@ -266,33 +299,37 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
 
             {/* ページネーション */}
             {totalPages > 1 && (
-                <nav className="flex justify-center items-center pb-10 sm:pb-16 gap-1.5 sm:gap-2 px-4 text-gray-700 font-['Yuji_Syuku']" aria-label="ページネーション">
+                <nav className="flex justify-center items-center pb-10 sm:pb-16 gap-1.5 sm:gap-2 px-4 text-gray-700 font-['Yuji_Syuku'] flex-wrap" aria-label="ページネーション">
                     {currentPage > 1 && (
                         <Link
-                            href={`/blog?page=${currentPage - 1}`}
+                            href={pageHref(currentPage - 1)}
                             className="px-3 py-2 sm:px-4 text-xs sm:text-sm border border-gray-300 rounded hover:bg-white transition"
                         >
                             前へ
                         </Link>
                     )}
 
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <Link
-                            key={page}
-                            href={`/blog?page=${page}`}
-                            className={`px-3 py-2 sm:px-4 text-xs sm:text-sm border rounded ${page === currentPage
-                                ? "bg-green-800 text-white border-green-800"
-                                : "border-gray-300 hover:bg-white"
-                                }`}
-                            aria-current={page === currentPage ? "page" : undefined}
-                        >
-                            {page}
-                        </Link>
-                    ))}
+                    {pageItems.map((item, i) =>
+                        item === null ? (
+                            <span key={`gap-${i}`} className="px-1 text-xs sm:text-sm text-gray-400 select-none">…</span>
+                        ) : (
+                            <Link
+                                key={item}
+                                href={pageHref(item)}
+                                className={`px-3 py-2 sm:px-4 text-xs sm:text-sm border rounded ${item === currentPage
+                                    ? "bg-green-800 text-white border-green-800"
+                                    : "border-gray-300 hover:bg-white"
+                                    }`}
+                                aria-current={item === currentPage ? "page" : undefined}
+                            >
+                                {item}
+                            </Link>
+                        )
+                    )}
 
                     {currentPage < totalPages && (
                         <Link
-                            href={`/blog?page=${currentPage + 1}`}
+                            href={pageHref(currentPage + 1)}
                             className="px-3 py-2 sm:px-4 text-xs sm:text-sm border border-gray-300 rounded hover:bg-white transition"
                         >
                             次へ
