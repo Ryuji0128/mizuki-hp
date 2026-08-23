@@ -609,10 +609,18 @@ sudo logwatch --output stdout
 
 | スクリプト | 説明 |
 |-----------|------|
-| `renew-ssl.sh` | SSL証明書の更新 |
+| `renew-ssl.sh` | SSL証明書の更新（失敗時メール通知） |
 | `backup-db.sh` | DBバックアップ（7日間保持） |
-| `monitor.sh` | サービス死活監視 |
+| `monitor.sh` | サービス死活監視 + SSL有効期限監視 |
 | `setup-monitoring.sh` | 監視環境セットアップ |
+
+> **重要**: `scripts/*.sh` は必ず実行権限（`100755`）付きでコミットすること。
+> デプロイ時に `git reset --hard origin/main` が走るため、gitの実行ビットが落ちていると
+> サーバー上の `chmod +x` は毎回巻き戻され、cronが `Permission denied` で静かに失敗する。
+>
+> ```bash
+> git update-index --chmod=+x scripts/xxx.sh
+> ```
 
 ### SSL証明書更新
 
@@ -621,7 +629,23 @@ sudo logwatch --output stdout
 ./scripts/renew-ssl.sh
 
 # cron設定（毎日3時に実行）
-0 3 * * * /root/mizuki-hp/scripts/renew-ssl.sh >> /var/log/ssl-renew.log 2>&1
+0 3 * * * /home/ubuntu/mizuki-hp/scripts/renew-ssl.sh >> /home/ubuntu/mizuki-hp/certbot-renew.log 2>&1
+```
+
+certbot は**残り30日未満**の証明書のみ更新するため、毎日実行しても無駄な更新は走らず、
+Let's Encrypt のレート制限にも影響しない。**月1回だと1度の失敗でそのまま失効する**ため、
+必ず毎日実行すること。
+
+更新に失敗した場合は `info@setaseisakusyo.com` にメール通知される。
+さらに `monitor.sh`（5分ごと）が実際に443番ポートで配信されている証明書の残日数を確認し、
+**残り20日を切ると1日1回**アラートを送る（更新は成功したが nginx へ未反映のケースも検知できる）。
+
+```bash
+# 現在配信中の証明書を確認
+echo | openssl s_client -connect mizuki-clinic.jp:443 -servername mizuki-clinic.jp 2>/dev/null   | openssl x509 -noout -dates -subject
+
+# 更新ログ
+tail -50 ~/mizuki-hp/certbot-renew.log
 ```
 
 ### DBバックアップ
