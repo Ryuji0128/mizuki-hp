@@ -672,6 +672,47 @@ DB全体（全テーブル）が対象で、`backup-haiku.sh`（`Blog` テーブ
 > */5 * * * * MONITOR_LOG_FILE=/home/ubuntu/mizuki-hp/logs/monitor.log /home/ubuntu/mizuki-hp/scripts/monitor.sh
 > ```
 
+### 通知基盤 (msmtp) — 監視の生命線
+
+監視やバックアップの通知は全て `msmtp` 経由で送られる。**ここが壊れると全ての監視が黙って無意味になる**ため、変更時は必ず疎通確認すること。
+
+過去に以下2つが同時に壊れており、障害通知が一通も届かない状態が続いていた:
+
+| 問題 | 症状 |
+|---|---|
+| `/etc/msmtprc` が `600 root` | 一般ユーザー（`ubuntu`）の cron から読めず `account default not found` で全送信失敗 |
+| SMTP 認証情報が誤り | root 実行時も `535 authentication failed` |
+
+fail2ban は `action_mwl`（メール通知付きBAN）を使うため、**メール送信の失敗で jail の起動自体が失敗する**。通知が壊れると防御まで止まる。
+
+```bash
+# 疎通確認（一般ユーザーとして実行すること）
+printf 'Subject: test
+To: info@setaseisakusyo.com
+
+test
+' | msmtp info@setaseisakusyo.com
+
+# 送信失敗はログに残る
+grep "ALERT SEND FAILED" ~/mizuki-hp/logs/monitor.log
+```
+
+### ログローテーション
+
+nginx は Docker コンテナのため、Ubuntu 標準の logrotate 設定（`postrotate` の `invoke-rc.d nginx rotate`）ではログを再オープンできない。ローテート後も古い inode に書き続け、新しい `access.log` は空のままになる。`notifempty` により翌日以降のローテートもスキップされ、**fail2ban が空ファイルを監視し続ける**。
+
+実際に 2026-05-31〜08-23 の84日分（125MB・692,694リクエスト）が1ファイルに溜まり、その間 nginx 系 jail が完全に無効化されていた。
+
+```bash
+# Docker 対応版に置換
+sudo cp logrotate/nginx-docker.conf /etc/logrotate.d/nginx
+
+# 動作確認
+sudo logrotate -d /etc/logrotate.d/nginx
+```
+
+アプリのログ（`logs/`, `certbot-renew.log`）は `/etc/logrotate.d` に置けないため、`logrotate/app.conf` をホームにコピーして cron で回す。
+
 ### サービス監視
 
 ```bash

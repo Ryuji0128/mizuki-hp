@@ -45,6 +45,37 @@ password       ${MAIL_PASSWORD}
 EOF
 
 chmod 600 /etc/msmtprc
+
+# cron を実行する一般ユーザーからも送れるようにする。
+# /etc/msmtprc は 600 root のため一般ユーザーは読めず、monitor.sh の通知が
+# 全て失敗する（実際にこれで障害通知が一通も届いていなかった）。
+CRON_USER="${SUDO_USER:-ubuntu}"
+CRON_HOME="$(getent passwd "$CRON_USER" | cut -d: -f6)"
+if [ -n "$CRON_HOME" ] && [ -d "$CRON_HOME" ]; then
+  cp /etc/msmtprc "${CRON_HOME}/.msmtprc"
+  # logfile は root 以外書けないため無効化する
+  sed -i 's#^logfile .*#logfile        ~/.msmtp.log#' "${CRON_HOME}/.msmtprc"
+  chown "$CRON_USER" "${CRON_HOME}/.msmtprc"
+  chmod 600 "${CRON_HOME}/.msmtprc"
+  echo "  ✓ ${CRON_HOME}/.msmtprc を作成 (cron ユーザー用)"
+fi
+
+# 認証が通るかここで必ず検証する。
+# パスワード誤りに気づかないと、監視も fail2ban の通知も全て黙って死ぬ。
+echo "  → メール送信テスト中..."
+if printf 'Subject: [setup] mizuki-hp 監視セットアップ
+From: monitor@%s
+To: %s
+
+セットアップ時の疎通確認メールです。
+'     "$(hostname)" "$ALERT_EMAIL" | msmtp "$ALERT_EMAIL" 2>/tmp/msmtp-test.err; then
+  echo "  ✓ メール送信成功 (${ALERT_EMAIL} を確認してください)"
+else
+  echo "  ✗ メール送信に失敗しました。パスワードを確認してください:"
+  sed 's/^/      /' /tmp/msmtp-test.err
+  echo "      → このままだと障害通知が一切届きません。"
+fi
+rm -f /tmp/msmtp-test.err
 echo "  ✓ msmtp 設定完了"
 
 # ---- 2. fail2ban ----
@@ -61,6 +92,16 @@ sed -i "s/port = ssh/port = ${SSH_PORT}/" /etc/fail2ban/jail.local
 
 # nginxログディレクトリ作成
 mkdir -p /var/log/nginx
+
+# nginx は Docker コンテナのため、Ubuntu 標準の logrotate 設定
+# (postrotate の invoke-rc.d) ではログを再オープンできない。
+# 再オープンされないと access.log が空のままになり、fail2ban が
+# 何も検知できなくなる（実際に84日間 nginx 系 jail が無効化されていた）。
+if [ -f "${PROJECT_DIR}/logrotate/nginx-docker.conf" ]; then
+  cp /etc/logrotate.d/nginx /etc/logrotate.d/nginx.bak 2>/dev/null || true
+  cp "${PROJECT_DIR}/logrotate/nginx-docker.conf" /etc/logrotate.d/nginx
+  echo "  ✓ logrotate の nginx 設定を Docker 対応版に置換"
+fi
 
 # fail2ban 起動
 systemctl enable fail2ban
