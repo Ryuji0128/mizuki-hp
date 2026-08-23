@@ -723,6 +723,24 @@ sudo bash scripts/setup-monitoring.sh
 ./scripts/monitor.sh
 ```
 
+### fail2ban が動かない時に最初に見るところ
+
+**Ubuntu の `/etc/fail2ban/jail.d/defaults-debian.conf` は `backend = systemd` を設定している。** これを `jail.local` で上書きしないと、`logpath` を書いても**完全に無視され journald だけを読む**。
+
+nginx は Docker コンテナで journald に書かないため、この状態では nginx 系 jail は**永久に何も検知しない**。実際に長期間まったく BAN が発生していなかった。
+
+```bash
+# 症状: ログに filtersystemd が出ていたら backend が systemd になっている
+grep filtersystemd /var/log/fail2ban.log
+
+# 確認: 検知数が常に0
+grep -c "Found " /var/log/fail2ban.log
+```
+
+`fail2ban/jail.local` の `[DEFAULT]` で `backend = polling` を明示している。
+
+また `action` は `%(action_)s`（BANのみ）にしている。以前の `action_mwl`（メール通知付き）はmsmtpの認証が失敗するとアクション起動に失敗し、**防御機構がメール送信の可否に依存する**危険な状態だった。通知は `monitor.sh` / logwatch 側の責務とする。
+
 ### fail2ban 操作
 
 ```bash
