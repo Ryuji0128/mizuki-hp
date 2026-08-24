@@ -65,6 +65,9 @@ certbot/
 
 docker-compose.local.yml
 
+# ローカル作業用（本番からのDBダンプ等）
+.local/
+
 # backup
 *.sql
 backups/

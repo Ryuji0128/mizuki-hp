@@ -135,8 +135,13 @@ cat >> /tmp/crontab.tmp << CRON
 # certbot は残り30日未満の証明書のみ更新するため、毎日実行しても無駄な更新は走らない。
 # 月1回だと1度の失敗でそのまま失効するため、必ず毎日実行すること。
 0 3 * * * ${PROJECT_DIR}/scripts/renew-ssl.sh >> ${PROJECT_DIR}/certbot-renew.log 2>&1
-# DBフルバックアップ (毎日 4:00 / 7日間保持)
+# DBフルバックアップ (毎日 4:00 / 30日間保持 / 1件16KB程度)
 0 4 * * * ${PROJECT_DIR}/scripts/backup-db.sh >> ${PROJECT_DIR}/logs/db-backup.log 2>&1
+# 俳句バックアップ (毎日 4:15 / DBのみ。uploads は週次で自動的に含まれる)
+15 4 * * * cd ${PROJECT_DIR} && ./scripts/backup-haiku.sh >> ${PROJECT_DIR}/logs/haiku-backup.log 2>&1
+# 秘密情報・サーバー設定のバックアップ (毎日 4:30 / 暗号化)
+# .env や msmtprc は GitHub にもイメージにも無く、失うと再構築できない
+30 4 * * * ${PROJECT_DIR}/scripts/backup-secrets.sh >> ${PROJECT_DIR}/logs/backup-secrets.log 2>&1
 # Logwatch日次レポート (毎朝 7:00)
 0 7 * * * /usr/sbin/logwatch --output mail
 CRON
@@ -156,7 +161,9 @@ echo "  • サービス監視: 5分ごとにコンテナ状態チェック → 
 echo "  • fail2ban: SSH(3回失敗→24h BAN) / Nginx不正アクセスブロック"
 echo "  • logwatch: 毎朝7:00にログサマリーを ${ALERT_EMAIL} に送信"
 echo "  • SSL更新: 毎日 3:00 (残り30日未満で自動更新 / 失敗時はメール通知)"
-echo "  • DBバックアップ: 毎日 4:00"
+echo "  • DBバックアップ: 毎日 4:00 (30日保持)"
+echo "  • 俳句バックアップ: 毎日 4:15 (uploads は週次)"
+echo "  • 秘密情報バックアップ: 毎日 4:30 (暗号化)"
 echo ""
 echo "確認コマンド:"
 echo "  fail2ban-client status         # fail2ban状態"
