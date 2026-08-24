@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 BACKUP_DIR="./backups"
 DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="${BACKUP_DIR}/app_db_${DATE}.sql.gz"
-KEEP_DAYS=7
+KEEP_DAYS="${DB_BACKUP_KEEP_DAYS:-30}"
 
 mkdir -p "$BACKUP_DIR"
 
@@ -22,8 +22,13 @@ docker compose exec -T mysql mysqldump \
 
 # パイプラインでは $? が最後のコマンド(gzip)の終了コードになるため、
 # mysqldump が失敗しても成功と誤判定される。PIPESTATUS で dump 側を確認する。
-dump_status=${PIPESTATUS[0]}
-gzip_status=${PIPESTATUS[1]}
+#
+# 注意: PIPESTATUS は代入を含むあらゆるコマンドの実行後に更新される。
+# dump_status=${PIPESTATUS[0]} を実行した時点で PIPESTATUS は (0) に置き換わり、
+# 続けて ${PIPESTATUS[1]} を読むと空になる。必ず一度に配列ごとコピーする。
+pipe_status=("${PIPESTATUS[@]}")
+dump_status=${pipe_status[0]}
+gzip_status=${pipe_status[1]}
 
 if [ "$dump_status" -ne 0 ] || [ "$gzip_status" -ne 0 ]; then
   echo "[$(date)] ERROR: Backup failed! (mysqldump=${dump_status}, gzip=${gzip_status})"

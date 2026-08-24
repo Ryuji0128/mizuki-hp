@@ -610,9 +610,39 @@ sudo logwatch --output stdout
 | スクリプト | 説明 |
 |-----------|------|
 | `renew-ssl.sh` | SSL証明書の更新（失敗時メール通知） |
-| `backup-db.sh` | DBバックアップ（7日間保持） |
+| `backup-db.sh` | DB全体のバックアップ（日次・30日保持・1件16KB程度） |
+| `backup-haiku.sh` | 俳句バックアップ（日次はDBのみ、uploads は週次） |
+| `backup-secrets.sh` | 秘密情報・サーバー設定のバックアップ（暗号化） |
 | `monitor.sh` | サービス死活監視 + SSL有効期限監視 |
 | `setup-monitoring.sh` | 監視環境セットアップ |
+
+ローカルPC側のスクリプトは [scripts/local/](scripts/local/) にある（オフサイト取得・外形監視）。
+復旧手順は [docs/RESTORE.md](docs/RESTORE.md)。
+
+### バックアップの設計
+
+失われたら困る実体は **uploads 約336MB と DBダンプ16KB** しかない。
+以前は `backup-haiku.sh` が uploads を毎日フルアーカイブしており、
+336MB の画像に対して **9.6GB（約29倍）** を消費していた。画像はほとんど変化しないため、
+現在は日次＝DBのみ、週次＝uploads込みに分けている。
+
+| 対象 | 頻度 | 保持 | 1件あたり |
+|---|---|---|---|
+| DB全体 (`backups/*.sql.gz`) | 日次 | 30日 | 16KB |
+| 俳句DB (`backups/haiku/*-backup-*.tar.gz`) | 日次 | 30日 | 11KB |
+| 俳句+画像 (`backups/haiku/*-full-*.tar.gz`) | 週次 | 4世代 | 336MB |
+| 秘密情報 (`backups/secrets/*.enc`) | 日次 | 10世代 | 4KB |
+
+**秘密情報のバックアップが必要な理由**: `.env` `next/.env` `~/.msmtprc` は
+GitHub にも Docker イメージにも入っていない。サーバーを失うと再構築できないため、
+暗号化した上でローカルPCへ複製する。
+
+パスフレーズは `~/.backup-passphrase`（600）に置き、**同じ値をパスワードマネージャにも保管する**。
+サーバーと一緒に失われると、バックアップがあっても復号できない。
+
+> サーバー上のバックアップは守る対象と同じディスクにある。
+> オフサイト複製は `scripts/local/pull-backup.ps1` がローカルPCから **pull型** で取得する。
+> push型（サーバーからPCへ送る）にすると、サーバー侵害時にバックアップ先まで消される。
 
 > **重要**: `scripts/*.sh` は必ず実行権限（`100755`）付きでコミットすること。
 > デプロイ時に `git reset --hard origin/main` が走るため、gitの実行ビットが落ちていると
