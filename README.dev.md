@@ -14,6 +14,78 @@
 - `node server.js` で起動
 - MySQLデータは `./mysql/data` に保存
 
+## 初回セットアップ（ここでつまずきます）
+
+`Dockerfile.dev` は **依存関係をインストールしません**。`docker-compose.dev.yml` が
+`./next:/app` をバインドマウントするため、イメージ側の `node_modules` は隠れてしまい、
+**ホストの `next/node_modules` がそのまま使われます**。
+
+`next/node_modules` が無い状態で起動すると、`npx prisma generate` が
+npm レジストリから **最新の Prisma（v7系）** を取得し、v6 形式のスキーマを弾いて失敗します:
+
+```
+Error code: P1012
+error: The datasource property `url` is no longer supported in schema files.
+Prisma CLI Version : 7.9.1          ← package.json は ^6.3.1
+```
+
+**起動前に必ず依存をインストールしてください。** ネイティブモジュール（Prisma エンジン等）を
+Linux 向けに揃えるため、ホストではなく**コンテナ内**で実行します:
+
+```bash
+# corepack enable は USER node では権限エラーになるので使わない
+docker compose -f docker-compose.dev.yml run --rm next   sh -c "COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack yarn@1.22.22 install --frozen-lockfile"
+```
+
+`next/.env` も必要です。`next/.env.example` をコピーして作成してください。
+ローカルでは `RECAPTCHA_BYPASS=true` を入れておくとお問い合わせフォームを試せます
+（`NODE_ENV=production` では無視される安全設計）。
+
+### ポートが競合する場合
+
+`docker-compose.dev.yml` は 3000（next）、3306（mysql）、80（nginx）を使います。
+他プロジェクトと衝突する場合は `docker-compose.local.yml`（gitignore 対象）で上書きします。
+
+**注意: compose は `ports` を「マージ」するため、単に書くと元のポートも一緒に
+バインドしようとして失敗します。** `!override` でリストごと置き換えてください:
+
+```yaml
+services:
+  next:
+    ports: !override
+      - "3100:3000"
+    environment:
+      - NEXTAUTH_URL=http://localhost:3100
+```
+
+```bash
+docker compose -f docker-compose.dev.yml -f docker-compose.local.yml up -d next
+```
+
+`environment` は `env_file` より優先されるため、`next/.env` を書き換えずに URL を上書きできます。
+
+## 本番データをローカルに取り込む
+
+本番DBには**お問い合わせの個人情報（`Inquiry`）と管理者の認証情報（`User`/`Account`）**が
+含まれます。UI確認が目的なら、必要なテーブルだけに絞ってください。
+
+```bash
+# 本番側: 俳句とお知らせだけをエクスポート
+ssh <本番サーバー>
+cd ~/mizuki-hp
+docker compose exec -T mysql mysqldump --no-tablespaces --skip-add-drop-table   --complete-insert -u app_user -papp_pass app_db Blog News | gzip > /tmp/haiku-export.sql.gz
+
+# ローカル側: 取り込み
+scp <本番サーバー>:/tmp/haiku-export.sql.gz .
+gzip -dc haiku-export.sql.gz | docker exec -i mysql_db_dev mysql -u root -proot app_db
+
+# 画像（約336MB）
+scp -C -r <本番サーバー>:'~/mizuki-hp/uploads/*' uploads/
+```
+
+取り込み後に `next` を起動すると `prisma db push` が残りのテーブルを作成します。
+管理画面を触る場合はローカル用の管理者を `prisma/seed.ts` で作成してください。
+
 ## 開発環境の起動
 
 ```bash
