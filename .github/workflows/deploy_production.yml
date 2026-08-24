@@ -42,6 +42,13 @@ jobs:
         working-directory: ./next
         run: yarn lint
 
+      # テストが落ちたらデプロイしない。
+      # vitest は以前から用意されていたが CI で実行されておらず、
+      # 実質的に機能していなかった。
+      - name: Run tests
+        working-directory: ./next
+        run: yarn test:run
+
       - name: Log in to Container Registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
