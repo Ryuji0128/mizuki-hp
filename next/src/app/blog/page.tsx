@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import type { BlogItem } from "@/types/models";
 import { getJSTYearMonth, formatJSTDate } from "@/lib/date";
+import { buildPageHref, buildPageItems } from "@/lib/pagination";
 import { prisma } from "@/lib/db";
 
 export const metadata: Metadata = {
@@ -114,32 +115,11 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
     const startIndex = (currentPage - 1) * perPage;
     const currentBlogs = filteredBlogs.slice(startIndex, startIndex + perPage);
 
-    // ページ送りのリンク。年月フィルタを保持しないと
-    // 絞り込み中にページを送った瞬間に全件表示へ戻ってしまう。
-    const pageHref = (page: number) => {
-        const q = new URLSearchParams();
-        if (filterYear && filterMonth) {
-            q.set("year", filterYear);
-            q.set("month", filterMonth);
-        }
-        if (page > 1) q.set("page", String(page));
-        const qs = q.toString();
-        return qs ? `/blog?${qs}` : "/blog";
-    };
-
-    // ページ番号は全件描画せず、前後1ページ + 最初/最後だけ出す。
-    // 句が増え続けるため、全部並べるとモバイルで横に潰れる。
-    // null は「…」を表す。
-    const pageItems: (number | null)[] = [];
-    for (let page = 1; page <= totalPages; page++) {
-        const isEdge = page === 1 || page === totalPages;
-        const isNearCurrent = Math.abs(page - currentPage) <= 1;
-        if (isEdge || isNearCurrent) {
-            pageItems.push(page);
-        } else if (pageItems[pageItems.length - 1] !== null) {
-            pageItems.push(null);
-        }
-    }
+    // ページ送りのリンクとページ番号の省略表示は @/lib/pagination に切り出している
+    // （単体テスト対象。過去にフィルタ引き継ぎ漏れと全件描画の不具合があった）
+    const pageHref = (page: number) =>
+        buildPageHref(page, { year: filterYear, month: filterMonth });
+    const pageItems = buildPageItems(currentPage, totalPages);
 
     // --- アーカイブグループ ---
     const archiveMap = blogs.reduce<Record<string, number>>((acc, blog) => {
