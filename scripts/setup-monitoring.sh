@@ -125,7 +125,26 @@ mkdir -p "${PROJECT_DIR}/logs"
 chown "$(stat -c %U "${PROJECT_DIR}")" "${PROJECT_DIR}/logs" 2>/dev/null || true
 
 # 既存のmizuki関連cronを削除して再設定
-crontab -l 2>/dev/null | grep -v "mizuki" | grep -v "logwatch" > /tmp/crontab.tmp || true
+# cron は「sudo で実行している root」ではなく、実際の運用ユーザーに登録する。
+#
+# このスクリプトは sudo 前提のため、素の crontab は root のものを指す。
+# root に登録すると、一般ユーザー側の cron と同じスクリプトが二重に走り、
+# 同名ファイルを奪い合ってバックアップが1件も残らない事故が起きる（実際に発生した）。
+# また root が作ったバックアップは所有者が root になり、
+# ローカルPCからの pull（一般ユーザーで接続）が読めなくなる。
+CRON_TARGET_USER="${SUDO_USER:-$(stat -c %U "${PROJECT_DIR}")}"
+echo "  cron 登録先ユーザー: ${CRON_TARGET_USER}"
+
+# 登録先ユーザー以外に mizuki 関連の cron が残っていたら警告する
+for u in root "${CRON_TARGET_USER}"; do
+  [ "$u" = "${CRON_TARGET_USER}" ] && continue
+  if crontab -u "$u" -l 2>/dev/null | grep -q "mizuki"; then
+    echo "  ⚠ ${u} の crontab にも mizuki 関連の定義が残っています。二重実行になるため削除してください:"
+    echo "      sudo crontab -u ${u} -e"
+  fi
+done
+
+crontab -u "${CRON_TARGET_USER}" -l 2>/dev/null | grep -v "mizuki" | grep -v "logwatch" > /tmp/crontab.tmp || true
 
 cat >> /tmp/crontab.tmp << CRON
 # === mizuki-clinic.jp 監視 ===
@@ -146,7 +165,7 @@ cat >> /tmp/crontab.tmp << CRON
 0 7 * * * /usr/sbin/logwatch --output mail
 CRON
 
-crontab /tmp/crontab.tmp
+crontab -u "${CRON_TARGET_USER}" /tmp/crontab.tmp
 rm /tmp/crontab.tmp
 echo "  ✓ cron 設定完了"
 

@@ -28,6 +28,20 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# 多重起動を防ぐ。
+# root と一般ユーザーの cron に同じスクリプトが登録されていると、
+# 同じ秒に起動して同名ファイルを奪い合い、両方失敗して
+# バックアップが1件も残らない事故が起きる（実際に発生した）。
+LOCK_FILE="${MIZUKI_BACKUP_SECRETS_LOCK:-/tmp/mizuki-backup-secrets.lock}"
+exec 9>"$LOCK_FILE" 2>/dev/null || true
+if command -v flock >/dev/null 2>&1; then
+  if ! flock -n 9; then
+    echo "[$(date)] 別のプロセスが実行中のためスキップ: 秘密情報バックアップ"
+    exit 0
+  fi
+fi
+
+
 BACKUP_DIR="${SECRETS_BACKUP_DIR:-./backups/secrets}"
 PASSPHRASE_FILE="${SECRETS_PASSPHRASE_FILE:-$HOME/.backup-passphrase}"
 KEEP="${SECRETS_BACKUP_KEEP:-10}"
