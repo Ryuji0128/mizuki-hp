@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { apiError, checkAdminAuth } from "@/lib/apiUtils";
 import logger from "@/lib/logger";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +41,9 @@ function isBackupTokenAuthorized(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const rateLimit = await checkRateLimit(request, { max: 10, windowMs: 60_000 });
+  if (rateLimit.limited) return rateLimitResponse(rateLimit.resetTime);
+
   if (!isBackupTokenAuthorized(request)) {
     const authResult = await checkAdminAuth();
     if (!authResult.isAdmin) {

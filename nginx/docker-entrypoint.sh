@@ -1,150 +1,103 @@
 #!/bin/sh
-set -e
+set -eu
 
-# CERT_NAME: 証明書ディレクトリ名（デフォルトはSERVER_NAME）
-CERT_NAME="${CERT_NAME:-${SERVER_NAME}}"
+: "${SERVER_NAME:?SERVER_NAME is required}"
+CERT_NAME="${CERT_NAME:-$SERVER_NAME}"
 CERT_PATH="/etc/letsencrypt/live/${CERT_NAME}/fullchain.pem"
+CONFIG_PATH="/etc/nginx/conf.d/default.conf"
 
-# 環境変数を展開
-envsubst '${SERVER_NAME}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
-
-# SSL証明書が存在する場合、HTTPS設定を追加
 if [ -f "$CERT_PATH" ]; then
-    echo "SSL certificate found. Enabling HTTPS..."
-    cat >> /etc/nginx/conf.d/default.conf << 'EOF'
+  envsubst '${SERVER_NAME}' < /etc/nginx/conf.d/default.conf.template > "$CONFIG_PATH"
+  cat >> "$CONFIG_PATH" <<'EOF'
 
-# HTTPS
 server {
     listen 443 ssl;
+    http2 on;
     server_name ${SERVER_NAME};
+    server_tokens off;
 
     ssl_certificate /etc/letsencrypt/live/${CERT_NAME}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${CERT_NAME}/privkey.pem;
-
     ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
-    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
 
-    # セキュリティヘッダー
-    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Frame-Options "DENY" always;
     add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://static.wixstatic.com; frame-src https://www.google.com; connect-src 'self' https://www.google.com;" always;
+    add_header Cross-Origin-Opener-Policy "same-origin" always;
+    add_header Cross-Origin-Resource-Policy "same-site" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://static.wixstatic.com; frame-src https://www.google.com; connect-src 'self' https://www.google.com https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests" always;
 
     client_max_body_size 10M;
 
     location /uploads/ {
         alias /var/www/uploads/;
         expires 30d;
-        add_header Cache-Control "public, max-age=2592000";
+    }
+
+    location /_next/static/ {
+        proxy_pass http://next:3000;
+        expires 1y;
+    }
+
+    location /static/ {
+        proxy_pass http://next:3000;
+        expires 1y;
     }
 
     location / {
         proxy_pass http://next:3000;
         proxy_http_version 1.1;
-
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header CF-Connecting-IP "";
+        proxy_set_header X-Middleware-Subrequest "";
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-
-        proxy_connect_timeout 60s;
+        proxy_connect_timeout 15s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
     }
-
-    location /_next/static/ {
-        proxy_pass http://next:3000;
-        proxy_cache_valid 200 60m;
-        add_header Cache-Control "public, max-age=31536000, immutable";
-    }
-
-    location /static/ {
-        proxy_pass http://next:3000;
-        add_header Cache-Control "public, max-age=31536000, immutable";
-    }
 }
 
-# www → non-www リダイレクト (HTTPS)
 server {
     listen 443 ssl;
+    http2 on;
     server_name www.${SERVER_NAME};
-
+    server_tokens off;
     ssl_certificate /etc/letsencrypt/live/${CERT_NAME}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${CERT_NAME}/privkey.pem;
-
     ssl_protocols TLSv1.2 TLSv1.3;
-
     return 301 https://${SERVER_NAME}$request_uri;
 }
 EOF
-    # SERVER_NAME と CERT_NAME を再度展開
-    sed -i "s/\${SERVER_NAME}/${SERVER_NAME}/g" /etc/nginx/conf.d/default.conf
-    sed -i "s/\${CERT_NAME}/${CERT_NAME}/g" /etc/nginx/conf.d/default.conf
+  sed -i "s/\${SERVER_NAME}/${SERVER_NAME}/g; s/\${CERT_NAME}/${CERT_NAME}/g" "$CONFIG_PATH"
 else
-    echo "SSL certificate not found. Running HTTP only..."
-    # HTTPSリダイレクトを無効化し、HTTPで直接サービス
-    cat > /etc/nginx/conf.d/default.conf << EOF
+  echo "TLS certificate not found; serving ACME challenges only."
+  cat > "$CONFIG_PATH" <<EOF
 server {
-    listen 80;
-    server_name www.${SERVER_NAME};
+    listen 80 default_server;
+    server_name ${SERVER_NAME} www.${SERVER_NAME};
+    server_tokens off;
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
     }
 
     location / {
-        return 301 http://${SERVER_NAME}\$request_uri;
-    }
-}
-
-EOF
-    cat >> /etc/nginx/conf.d/default.conf << EOF
-server {
-    listen 80;
-    server_name ${SERVER_NAME};
-
-    client_max_body_size 10M;
-
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-
-    location / {
-        proxy_pass http://next:3000;
-        proxy_http_version 1.1;
-
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-    }
-
-    location /_next/static/ {
-        proxy_pass http://next:3000;
-        proxy_cache_valid 200 60m;
-        add_header Cache-Control "public, max-age=31536000, immutable";
-    }
-
-    location /static/ {
-        proxy_pass http://next:3000;
-        add_header Cache-Control "public, max-age=31536000, immutable";
+        add_header Retry-After "300" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        return 503 "TLS certificate unavailable. Retry later.\n";
     }
 }
 EOF
 fi
 
+nginx -t
 exec nginx -g 'daemon off;'

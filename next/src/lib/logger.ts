@@ -29,7 +29,7 @@ const shouldLog = (level: LogLevel): boolean => {
   return LOG_LEVELS[level] >= getCurrentLevel();
 };
 
-export const logger = {
+const logger = {
   debug: (message: string, meta?: unknown) => {
     if (shouldLog("debug")) {
       console.debug(formatMessage("debug", message, meta));

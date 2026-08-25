@@ -1,15 +1,17 @@
-import { auth } from "@/auth";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, readdir, stat, writeFile } from "fs/promises";
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import path from "path";
 import logger from "@/lib/logger";
+import { checkAdminOnlyAuth } from "@/lib/apiUtils";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
+import { NextRequest } from "next/server";
+import sharp from "sharp";
 
 // 許可されたMIMEタイプと対応する拡張子
 const ALLOWED_TYPES: Record<string, string> = {
   "image/jpeg": ".jpg",
   "image/png": ".png",
-  "image/gif": ".gif",
   "image/webp": ".webp",
 };
 
@@ -17,12 +19,13 @@ const ALLOWED_TYPES: Record<string, string> = {
 const MAGIC_BYTES: Record<string, number[]> = {
   "image/jpeg": [0xff, 0xd8, 0xff],
   "image/png": [0x89, 0x50, 0x4e, 0x47],
-  "image/gif": [0x47, 0x49, 0x46],
   "image/webp": [0x52, 0x49, 0x46, 0x46], // RIFF
 };
 
 // 最大ファイルサイズ (nginx の client_max_body_size と合わせる)
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_UPLOAD_STORAGE = 500 * 1024 * 1024;
+const MAX_IMAGE_PIXELS = 40_000_000;
 
 function normalizeMimeType(mimeType: string): string {
   if (mimeType === "image/jpg" || mimeType === "image/pjpeg") {
@@ -35,7 +38,6 @@ function inferMimeTypeFromFileName(fileName: string): string | null {
   const ext = path.extname(fileName).toLowerCase();
   if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
   if (ext === ".png") return "image/png";
-  if (ext === ".gif") return "image/gif";
   if (ext === ".webp") return "image/webp";
   return null;
 }
@@ -68,23 +70,27 @@ function validateMagicBytes(buffer: Buffer, mimeType: string): boolean {
   return true;
 }
 
-export async function POST(req: Request) {
-  try {
-    // 認証チェック
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
-    }
+async function getUploadStorageBytes(uploadDir: string): Promise<number> {
+  let total = 0;
+  for (const entry of await readdir(uploadDir, { withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    total += (await stat(path.join(uploadDir, entry.name))).size;
+  }
+  return total;
+}
 
-    // ADMINロールチェック
-    if (session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "権限がありません" }, { status: 403 });
-    }
+export async function POST(req: NextRequest) {
+  try {
+    const currentAuth = await checkAdminOnlyAuth();
+    if (!currentAuth.isAdmin) return currentAuth.response;
+
+    const rateLimit = await checkRateLimit(req, { max: 10, windowMs: 60 * 1000 });
+    if (rateLimit.limited) return rateLimitResponse(rateLimit.resetTime);
 
     const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const file = formData.get("file");
 
-    if (!file) {
+    if (!(file instanceof File)) {
       return NextResponse.json({ error: "ファイルがありません" }, { status: 400 });
     }
 
@@ -103,7 +109,7 @@ export async function POST(req: Request) {
 
     if (!mimeType || !ALLOWED_TYPES[mimeType]) {
       return NextResponse.json(
-        { error: "許可されていないファイル形式です（JPEG, PNG, GIF, WebPのみ）" },
+        { error: "許可されていないファイル形式です（JPEG, PNG, WebPのみ）" },
         { status: 400 }
       );
     }
@@ -120,15 +126,35 @@ export async function POST(req: Request) {
     }
 
     // 保存先: public/uploads
+    let processedBuffer: Buffer;
+    try {
+      const pipeline = sharp(buffer, {
+        failOn: "error",
+        limitInputPixels: MAX_IMAGE_PIXELS,
+      })
+        .rotate()
+        .resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true });
+
+      if (mimeType === "image/jpeg") processedBuffer = await pipeline.jpeg({ quality: 88 }).toBuffer();
+      else if (mimeType === "image/png") processedBuffer = await pipeline.png({ compressionLevel: 9 }).toBuffer();
+      else processedBuffer = await pipeline.webp({ quality: 88 }).toBuffer();
+    } catch {
+      return NextResponse.json({ error: "Invalid or unsupported image data." }, { status: 400 });
+    }
+
     const uploadDir = path.join(process.cwd(), "public", "uploads");
     await mkdir(uploadDir, { recursive: true });
+    const currentStorage = await getUploadStorageBytes(uploadDir);
+    if (currentStorage + processedBuffer.length > MAX_UPLOAD_STORAGE) {
+      return NextResponse.json({ error: "Upload storage quota exceeded." }, { status: 507 });
+    }
 
     // ランダムファイル名を生成（MIMEタイプに基づく安全な拡張子を使用）
     const ext = ALLOWED_TYPES[mimeType];
     const randomName = crypto.randomUUID();
     const fileName = `${randomName}${ext}`;
     const filePath = path.join(uploadDir, fileName);
-    await writeFile(filePath, buffer);
+    await writeFile(filePath, processedBuffer, { flag: "wx" });
 
     const imageUrl = `/uploads/${fileName}`;
     return NextResponse.json({ url: imageUrl });

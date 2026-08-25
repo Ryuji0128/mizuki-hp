@@ -9,7 +9,7 @@ on:
 
 concurrency:
   group: deploy-production
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
@@ -17,7 +17,7 @@ env:
 
 jobs:
   build-and-push:
-    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main')
+    if: (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -30,7 +30,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.1.0
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'yarn'
           cache-dependency-path: next/yarn.lock
 
@@ -41,6 +41,14 @@ jobs:
       - name: Run lint
         working-directory: ./next
         run: yarn lint
+
+      - name: Run type check
+        working-directory: ./next
+        run: yarn tsc --noEmit
+
+      - name: Audit production dependencies
+        working-directory: ./next
+        run: yarn audit --groups dependencies --level moderate
 
       # テストが落ちたらデプロイしない。
       # vitest は以前から用意されていたが CI で実行されておらず、
@@ -96,12 +104,37 @@ jobs:
 
             cd ~/mizuki-hp
 
-            # Load environment variables from .env
-            if [ -f .env ]; then
-              set -a
-              . ./.env
-              set +a
+            # Load server-owned environment variables. This file is gitignored
+            # and survives the reset below.
+            if [ ! -f .env ]; then
+              echo "ERROR: ~/mizuki-hp/.env does not exist"
+              exit 1
             fi
+            set -a
+            . ./.env
+            set +a
+
+            # Generate the production session secret once, without printing it.
+            # Existing secrets are never rotated automatically.
+            if [ -z "${AUTH_SECRET:-}" ]; then
+              if ! command -v openssl >/dev/null 2>&1; then
+                echo "ERROR: AUTH_SECRET is missing and openssl is unavailable"
+                exit 1
+              fi
+              echo "AUTH_SECRET is missing; generating and storing a new value in .env"
+              umask 077
+              AUTH_SECRET="$(openssl rand -hex 32)"
+              printf '\nAUTH_SECRET=%s\n' "$AUTH_SECRET" >> .env
+              export AUTH_SECRET
+            fi
+            chmod 600 .env
+
+            : "${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set in .env}"
+            : "${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set in .env}"
+            : "${SERVER_NAME:?SERVER_NAME must be set in .env}"
+            : "${CERTBOT_EMAIL:?CERTBOT_EMAIL must be set in .env}"
+            : "${CERTBOT_DOMAINS:?CERTBOT_DOMAINS must be set in .env}"
+            : "${AUTH_SECRET:?AUTH_SECRET must be set in .env}"
 
             echo "Pulling latest code..."
             git fetch origin main
@@ -115,11 +148,17 @@ jobs:
             echo "${GH_PAT}" | docker login ghcr.io -u "${GH_USERNAME}" --password-stdin
 
             echo "Pulling image for tag: ${IMAGE_TAG}"
+            PREVIOUS_IMAGE=$(docker inspect -f '{{.Config.Image}}' next_app 2>/dev/null || true)
             export IMAGE_TAG="${IMAGE_TAG}"
             docker compose -f docker-compose.yml pull next
 
+            echo "Preparing persistent upload directory for the non-root app user..."
+            mkdir -p uploads
+            docker compose -f docker-compose.yml run --rm --no-deps --user root next \
+              sh -c 'chown -R 1001:1001 /app/public/uploads && chmod 0755 /app/public/uploads'
+
             echo "Starting mysql first..."
-            docker compose -f docker-compose.yml up -d mysql
+            docker compose -f docker-compose.yml up -d mysql redis
 
             echo "Waiting for MySQL to be ready..."
             i=1
@@ -161,8 +200,9 @@ jobs:
                 echo "SSL certificate obtained successfully. Restarting nginx with SSL..."
                 docker compose -f docker-compose.yml restart nginx
               else
-                echo "WARNING: SSL certificate acquisition failed. Nginx will continue with HTTP only."
+                echo "ERROR: SSL certificate acquisition failed. Nginx remains fail-closed."
                 echo "Check DNS settings and ensure port 80 is accessible."
+                exit 1
               fi
             else
               echo "SSL certificate exists. Checking for renewal..."
@@ -176,9 +216,6 @@ jobs:
                 docker compose -f docker-compose.yml restart nginx
               fi
             fi
-
-            echo "Cleaning up old images..."
-            docker image prune -f
 
             echo "Running health check..."
             HEALTH_URL="http://localhost:2999/api/health"
@@ -196,7 +233,18 @@ jobs:
             if [ "$HEALTH_OK" = "false" ]; then
               echo "ERROR: Health check failed after 30 seconds"
               echo "Application is not responding correctly"
+              if [ -n "$PREVIOUS_IMAGE" ]; then
+                PREVIOUS_TAG="${PREVIOUS_IMAGE##*:}"
+                echo "Rolling application container back to ${PREVIOUS_TAG}..."
+                IMAGE_TAG="$PREVIOUS_TAG" docker compose -f docker-compose.yml up -d next nginx
+              fi
               exit 1
             fi
+
+            echo "Checking HTTPS edge health..."
+            curl --fail --silent --show-error --max-time 15 "https://${SERVER_NAME}/api/health" > /dev/null
+
+            echo "Cleaning up old images..."
+            docker image prune -f
 
             echo "Deployment completed successfully!"

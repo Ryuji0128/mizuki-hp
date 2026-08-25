@@ -15,10 +15,11 @@ ALERT_EMAIL="${ALERT_EMAIL:-info@setaseisakusyo.com}"
 HOSTNAME=$(hostname)
 # /var/log は root 所有のため、ubuntu ユーザーの cron では書けない。
 # cron 側から MONITOR_LOG_FILE で書き込み可能なパスを指定する。
-LOG_FILE="${MONITOR_LOG_FILE:-/var/log/mizuki-monitor.log}"
+LOG_FILE="${MONITOR_LOG_FILE:-./logs/monitor.log}"
+mkdir -p "$(dirname "$LOG_FILE")"
 
 # チェック対象コンテナ
-CONTAINERS=("next_app" "mysql_db" "nginx_proxy")
+CONTAINERS=("next" "mysql" "redis" "nginx")
 
 # 通知の重複抑制 (同種のアラートは ALERT_INTERVAL 秒に1回まで)
 # 5分ごとの実行なので、これが無いと障害時にメールが延々と飛び続ける
@@ -63,16 +64,33 @@ send_alert() {
 
 # コンテナ状態チェック
 for container in "${CONTAINERS[@]}"; do
-  status=$(docker inspect -f '{{.State.Running}}' "$container" 2>/dev/null)
+  container_id=$(docker compose ps -q "$container" 2>/dev/null)
+  status=""
+  if [ -n "$container_id" ]; then
+    running=$(docker inspect -f '{{.State.Running}}' "$container_id" 2>/dev/null)
+    health=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container_id" 2>/dev/null)
+    if [ "$running" = "true" ] && [ "$health" != "unhealthy" ]; then
+      status="running"
+    fi
+  fi
 
-  if [ "$status" != "true" ]; then
+  if [ -z "$status" ]; then
     if should_alert "down-${container}"; then
       send_alert "${container} がダウンしています" \
         "サーバー: ${HOSTNAME}\nコンテナ: ${container}\n状態: 停止\n検知時刻: $(date)\n\n自動復旧を試みます..."
     fi
 
     # 自動復旧は通知のスロットルとは独立に毎回試みる
-    docker compose up -d "$container" 2>> "$LOG_FILE"
+    if [ -n "$container_id" ]; then
+      recovery_command=(docker compose restart "$container")
+    else
+      recovery_command=(docker compose up -d "$container")
+    fi
+    if ! "${recovery_command[@]}" 2>> "$LOG_FILE"; then
+      echo "[$(date)] ERROR: Recovery failed for service: ${container}" >> "$LOG_FILE"
+      send_alert "${container} recovery failed" "Server: ${HOSTNAME}\nService: ${container}\nTime: $(date)"
+      continue
+    fi
     echo "[$(date)] ${container} の復旧を試行しました" >> "$LOG_FILE"
   else
     clear_alert "down-${container}"
@@ -147,7 +165,7 @@ check_backup_freshness() {
   fi
 }
 
-check_backup_freshness "DB" "./backups/app_db_*.sql.gz"
+check_backup_freshness "DB" "./backups/app_db_*.sql.gz.enc"
 check_backup_freshness "俳句" "./backups/haiku/mizuki-haiku-*.tar.gz"
 check_backup_freshness "秘密情報" "./backups/secrets/secrets-*.tar.gz.enc"
 
