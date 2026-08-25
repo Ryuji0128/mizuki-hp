@@ -76,8 +76,9 @@ docker compose down
 
 | サービス | コンテナ名 | ポート | 説明 | メモリ制限 |
 |---------|-----------|--------|------|---------|
-| next | next_app | 2999:3000 (本番) / 3000:3000 (開発) | Next.js（standalone / ghcr.ioからpull） | 384MB |
-| mysql | mysql_db | 3306 | MySQL 8.0 データベース | 320MB |
+| next | next_app | 127.0.0.1:2999:3000 (本番) / 127.0.0.1:3000:3000 (開発) | Next.js（standalone / ghcr.ioからpull） | 768MB |
+| mysql | mysql_db | 内部のみ | MySQL 8.4 データベース | 512MB |
+| redis | redis_cache | 内部のみ | 共有レート制限 | 96MB |
 | nginx | nginx_proxy | 80, 443 | リバースプロキシ（SSL対応） | 96MB |
 | certbot | certbot | - | SSL証明書管理（profiles: ssl） | - |
 
@@ -118,7 +119,7 @@ docker compose down
 
 ## 環境変数の設定
 
-`next/.env`ファイルに以下を設定：
+開発環境では`next/.env`に以下を設定します。本番の`AUTH_SECRET`はルート`.env`からComposeが渡し、初回GitHub Actionsデプロイ時に未設定なら安全な値を自動生成します。
 
 ```env
 # 認証
@@ -126,7 +127,7 @@ AUTH_SECRET=<openssl rand -base64 32 で生成>
 NEXTAUTH_URL=http://localhost:3000
 
 # データベース
-DATABASE_URL=mysql://app_user:app_pass@mysql:3306/app_db
+DATABASE_URL=mysql://app_user:<strong-unique-password>@mysql:3306/app_db
 
 # メール送信 (nodemailer)
 CONTACT_TO_EMAIL=info@example.com
@@ -189,7 +190,7 @@ docker compose exec next yarn lint
 
 ## 本番デプロイ
 
-GitHub Actionsによる自動デプロイ（Node.js 20 / yarn）：
+GitHub Actionsによる自動デプロイ（Node.js 22 / yarn）：
 
 1. `develop` → `main` へのPRをマージ（または手動 `workflow_dispatch`）
 2. 依存関係インストール（yarnキャッシュ利用）
@@ -202,7 +203,7 @@ GitHub Actionsによる自動デプロイ（Node.js 20 / yarn）：
 
 ### Dockerイメージ
 
-マルチステージビルド（Node.js 20 Alpine）により軽量イメージを生成。本番サーバーではpullのみ行い、ビルドは行わない。
+マルチステージビルド（Node.js 22.23.2 / Alpine 3.24）により軽量イメージを生成。本番サーバーではpullのみ行い、ビルドは行わない。
 
 ### SSL証明書の自動管理
 
@@ -212,10 +213,12 @@ GitHub Actionsによる自動デプロイ（Node.js 20 / yarn）：
 - **2回目以降**: 証明書の有効期限をチェックし、必要に応じて更新
 
 nginx は証明書の有無を自動判定（`docker-entrypoint.sh`）：
-- 証明書なし → HTTP のみで起動
+- 証明書なし → ACME challenge 以外は HTTP 503 で fail-closed
 - 証明書あり → HTTPS 有効、HTTP→HTTPS リダイレクト、www→non-www リダイレクト
 
 ### 手動デプロイ
+
+原則として、`main`へマージした後にGitHub Actionsの`Deploy_Production`を使用してください。手動実行も`main`ブランチからのみ許可されます。workflowはDB migrationに加え、`.env`の`AUTH_SECRET`生成と`uploads`のUID 1001への権限調整を行います。
 
 ```bash
 ssh your-server
@@ -229,8 +232,8 @@ docker compose up -d
 
 ### フロントエンド
 - TypeScript 5.7
-- React 19
-- Next.js 15.1.11 (App Router, standalone output)
+- React 19.2
+- Next.js 15.5.23 (App Router, standalone output)
 - MUI (Material UI) 6.5
 - Tailwind CSS 3.4
 - Framer Motion 12
@@ -239,9 +242,10 @@ docker compose up -d
 
 ### バックエンド
 - Next.js API Routes (Server Actions対応、bodyサイズ上限2MB)
-- Prisma ORM 6.3
+- Prisma ORM 6.18
 - Auth.js v5 (NextAuth) + Prisma Adapter
-- MySQL 8.0
+- MySQL 8.4
+- Redis 7.4（共有レート制限）
 - nodemailer（SMTP メール送信）
 - xss（入力サニタイズ）
 
@@ -252,7 +256,7 @@ docker compose up -d
 - さくらVPS 1GB
 - GitHub Actions (CI/CD)
 - GitHub Container Registry (ghcr.io)
-- Node.js 20 (Alpine)
+- Node.js 22.23.2 (Alpine 3.24)
 
 ## ディレクトリ構成
 
@@ -297,7 +301,7 @@ mizuki-hp/
 └── next/
     ├── Dockerfile                # Next.jsコンテナ設定（マルチステージビルド）
     ├── .env                      # 環境変数（gitignore）
-    ├── next-sitemap.config.cjs   # サイトマップ設定
+    ├── src/app/sitemap.ts        # サイトマップ生成
     ├── prisma/
     │   ├── schema.prisma         # DBスキーマ定義
     │   ├── seed.ts               # シードデータ
@@ -495,7 +499,8 @@ docker compose exec next npx prisma generate
 docker compose exec next sh -c "rm -rf node_modules/.prisma && npx prisma generate"
 
 # DB接続確認
-docker compose exec mysql mysql -u app_user -papp_pass app_db
+. ./.env
+docker compose exec -e MYSQL_PWD="$MYSQL_PASSWORD" mysql mysql -u "$MYSQL_USER" "$MYSQL_DATABASE"
 ```
 
 ## レスポンシブ対応
@@ -536,16 +541,16 @@ docker compose exec mysql mysql -u app_user -papp_pass app_db
 | Secure Cookies | HTTPS環境で自動的にセキュアクッキー有効化（`NEXTAUTH_URL`の`https://`を検出） |
 | ユーザーロール | ADMIN / EDITOR / VIEWER |
 | ミドルウェア | `/portal-admin/*` ルートの認証保護（未認証時は `/portal-login` にリダイレクト） |
-| レート制限 | IP単位でのリクエスト制限（お問い合わせ: 3回/分）、nginx proxy環境対応<br>**制限**: インメモリMap実装（単一インスタンス前提、再起動でリセット） |
+| レート制限 | Redis共有カウンタ、信頼済み`X-Real-IP`のみ使用。Redis障害時は上限付きローカルMapへfail-safe |
 | API保護 | ADMIN権限チェック（Blog/News CRUD、問い合わせ削除、アップロード） |
 | reCAPTCHA v3 | フォームスパム対策（スコア閾値: 0.5）、開発環境では自動バイパス |
 | XSSサニタイズ | 二重防御: `xss`パッケージ + HTML escapeによる入力サニタイズ |
 | 入力バリデーション | Zod + カスタムバリデーションによる型安全な入力検証 |
 | 環境変数保護 | `.env`ファイル編集禁止（`.claude/settings.json`の`deny`リスト） |
 | シード保護 | 管理者パスワードのハードコード禁止（環境変数必須: `ADMIN_EMAIL`, `ADMIN_PASSWORD`） |
-| アップロード | 認証+ADMIN権限 / MIME制限 (JPEG, PNG, GIF, WebP) / 5MB制限 / UUIDファイル名 |
+| アップロード | 認証+ADMIN権限 / JPEG・PNG・WebPの実データ検査 / Sharp再エンコード / 10MB制限 / UUIDファイル名 |
 | SSL | Let's Encrypt + HTTP→HTTPS自動リダイレクト + www→non-wwwリダイレクト |
-| DB | 強固なパスワード設定 / 自動バックアップ (7日間保持) |
+| DB | 強固なパスワード設定 / AES-256-CBC暗号化バックアップ（30日保持） |
 
 ### Nginx セキュリティヘッダー
 
@@ -553,7 +558,7 @@ docker compose exec mysql mysql -u app_user -papp_pass app_db
 
 | ヘッダー | 値 | 効果 |
 |---------|-----|------|
-| `X-Frame-Options` | SAMEORIGIN | クリックジャッキング防止 |
+| `X-Frame-Options` | DENY | クリックジャッキング防止 |
 | `X-Content-Type-Options` | nosniff | MIMEスニッフィング防止 |
 | `X-XSS-Protection` | 1; mode=block | XSS攻撃防止 |
 | `Referrer-Policy` | strict-origin-when-cross-origin | リファラー情報制限 |
@@ -628,7 +633,7 @@ sudo logwatch --output stdout
 
 | 対象 | 頻度 | 保持 | 1件あたり |
 |---|---|---|---|
-| DB全体 (`backups/*.sql.gz`) | 日次 | 30日 | 16KB |
+| DB全体 (`backups/*.sql.gz.enc`) | 日次 | 30日 | 環境依存 |
 | 俳句DB (`backups/haiku/*-backup-*.tar.gz`) | 日次 | 30日 | 11KB |
 | 俳句+画像 (`backups/haiku/*-full-*.tar.gz`) | 週次 | 4世代 | 336MB |
 | 秘密情報 (`backups/secrets/*.enc`) | 日次 | 10世代 | 4KB |
@@ -688,7 +693,7 @@ tail -50 ~/mizuki-hp/certbot-renew.log
 0 4 * * * /home/ubuntu/mizuki-hp/scripts/backup-db.sh >> /home/ubuntu/mizuki-hp/logs/db-backup.log 2>&1
 ```
 
-バックアップは `backups/` に `app_db_YYYYMMDD_HHMMSS.sql.gz` として保存。7日間保持。
+バックアップは `backups/` に `app_db_YYYYMMDDTHHMMSSZ.sql.gz.enc` として AES-256-CBC/PBKDF2 暗号化して保存。既定で30日間保持。
 DB全体（全テーブル）が対象で、`backup-haiku.sh`（`Blog` テーブル + `uploads/` のみ・30日保持）とは役割が異なるため両方必要。
 
 `mysqldump | gzip` はパイプラインのため `$?` では gzip の結果しか見えず、dump が失敗しても
@@ -821,7 +826,7 @@ SMTP経由でお問い合わせメール送信（管理者通知 + 自動返信�
 
 ### Sitemap
 
-`next-sitemap`で自動生成（ビルド時に `postbuild` スクリプトで実行）。Google Search Consoleに登録済み。
+Next.js の `src/app/sitemap.ts` と `src/app/robots.ts` で生成。`SITE_URL` を正規URLとして使用する。
 
 ### 外部画像ドメイン
 
@@ -876,30 +881,9 @@ DELETE /api/email  - お問い合わせ削除（ADMIN権限必須）
 
 ## 既知の制限事項と将来の改善
 
-### レート制限（Medium Priority）
+### レート制限
 
-**現状**: インメモリMap実装
-- 単一プロセス前提（複数インスタンスで共有不可）
-- アプリケーション再起動でリセット
-- 実装: [next/src/lib/rateLimit.ts](next/src/lib/rateLimit.ts:13)
-
-**推奨改善**: Redis等の共有ストアへの移行
-```typescript
-// 将来的な実装例
-import { Redis } from 'ioredis';
-const redis = new Redis(process.env.REDIS_URL);
-
-export async function isRateLimited(req: NextRequest, options: RateLimitOptions): Promise<boolean> {
-  const key = `rate-limit:${ip}:${pathname}`;
-  const current = await redis.incr(key);
-  if (current === 1) {
-    await redis.expire(key, windowMs / 1000);
-  }
-  return current > max;
-}
-```
-
-**実施タイミング**: 複数インスタンス化が必要になった時点
+本番はRedisで複数プロセス間のカウンタを共有します。Redisへ接続できない場合のみ、最大10,000キーのローカルMapへ切り替わります。復旧後はRedisへ自動的に戻ります。
 
 ### その他の制約
 

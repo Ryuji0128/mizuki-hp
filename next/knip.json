@@ -1,0 +1,4 @@
+{
+  "ignore": ["prisma/seed.ts", "vitest.setup.ts"],
+  "ignoreBinaries": ["tsx"]
+}

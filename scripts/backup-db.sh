@@ -1,63 +1,67 @@
 #!/bin/bash
-# MySQLバックアップスクリプト
-# cron設定例: 0 4 * * * /path/to/mizuki-hp/scripts/backup-db.sh >> /path/to/mizuki-hp/logs/db-backup.log 2>&1
+set -euo pipefail
+umask 077
 
 cd "$(dirname "$0")/.."
 
-# 多重起動を防ぐ。
-# root と一般ユーザーの cron に同じスクリプトが登録されていると、
-# 同じ秒に起動して同名ファイルを奪い合い、両方失敗して
-# バックアップが1件も残らない事故が起きる（実際に発生した）。
-LOCK_FILE="${MIZUKI_BACKUP_DB_LOCK:-/tmp/mizuki-backup-db.lock}"
-exec 9>"$LOCK_FILE" 2>/dev/null || true
-if command -v flock >/dev/null 2>&1; then
-  if ! flock -n 9; then
-    echo "[$(date)] 別のプロセスが実行中のためスキップ: DBバックアップ"
-    exit 0
-  fi
+if [ -f .env ]; then
+  set -a
+  # shellcheck disable=SC1091
+  . ./.env
+  set +a
 fi
 
+: "${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set in .env}"
+MYSQL_USER="${MYSQL_USER:-app_user}"
+MYSQL_DATABASE="${MYSQL_DATABASE:-app_db}"
 
-BACKUP_DIR="./backups"
-DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="${BACKUP_DIR}/app_db_${DATE}.sql.gz"
+LOCK_FILE="${MIZUKI_BACKUP_DB_LOCK:-/tmp/mizuki-backup-db.lock}"
+exec 9>"$LOCK_FILE"
+if command -v flock >/dev/null 2>&1 && ! flock -n 9; then
+  echo "[$(date)] Another DB backup is already running; skipped."
+  exit 0
+fi
+
+BACKUP_DIR="${DB_BACKUP_DIR:-./backups}"
+PASSPHRASE_FILE="${DB_BACKUP_PASSPHRASE_FILE:-$HOME/.backup-passphrase}"
 KEEP_DAYS="${DB_BACKUP_KEEP_DAYS:-30}"
+DATE=$(date -u +%Y%m%dT%H%M%SZ)
+BACKUP_FILE="${BACKUP_DIR}/app_db_${DATE}.sql.gz.enc"
+
+if [ ! -f "$PASSPHRASE_FILE" ]; then
+  echo "[$(date)] ERROR: backup passphrase file is missing: $PASSPHRASE_FILE"
+  exit 1
+fi
+
+perms=$(stat -c %a "$PASSPHRASE_FILE")
+if [ "$perms" != "600" ] && [ "$perms" != "400" ]; then
+  echo "[$(date)] ERROR: $PASSPHRASE_FILE permissions must be 600 or 400 (current: $perms)"
+  exit 1
+fi
 
 mkdir -p "$BACKUP_DIR"
 
-# mysqldump実行 + gzip圧縮
-# --no-tablespaces: app_user に PROCESS 権限が無いため、付けないと
-#   'Access denied; you need (at least one of) the PROCESS privilege(s)' が出る
-docker compose exec -T mysql mysqldump \
-  --no-tablespaces \
-  -u "${MYSQL_USER:-app_user}" \
-  -p"${MYSQL_PASSWORD:-app_pass}" \
-  "${MYSQL_DATABASE:-app_db}" | gzip > "$BACKUP_FILE"
-
-# パイプラインでは $? が最後のコマンド(gzip)の終了コードになるため、
-# mysqldump が失敗しても成功と誤判定される。PIPESTATUS で dump 側を確認する。
-#
-# 注意: PIPESTATUS は代入を含むあらゆるコマンドの実行後に更新される。
-# dump_status=${PIPESTATUS[0]} を実行した時点で PIPESTATUS は (0) に置き換わり、
-# 続けて ${PIPESTATUS[1]} を読むと空になる。必ず一度に配列ごとコピーする。
-pipe_status=("${PIPESTATUS[@]}")
-dump_status=${pipe_status[0]}
-gzip_status=${pipe_status[1]}
-
-if [ "$dump_status" -ne 0 ] || [ "$gzip_status" -ne 0 ]; then
-  echo "[$(date)] ERROR: Backup failed! (mysqldump=${dump_status}, gzip=${gzip_status})"
+if ! docker compose exec -T -e MYSQL_PWD="$MYSQL_PASSWORD" mysql \
+    mysqldump --no-tablespaces -u "$MYSQL_USER" "$MYSQL_DATABASE" \
+    | gzip \
+    | openssl enc -aes-256-cbc -pbkdf2 -salt -pass file:"$PASSPHRASE_FILE" \
+    > "$BACKUP_FILE"; then
+  echo "[$(date)] ERROR: encrypted DB backup failed"
   rm -f "$BACKUP_FILE"
   exit 1
 fi
 
-# ダンプが最後まで書き切れたかを完了マーカーで確認する
-if ! zcat "$BACKUP_FILE" | tail -5 | grep -q "Dump completed"; then
-  echo "[$(date)] ERROR: Backup is incomplete (完了マーカーなし): $BACKUP_FILE"
+chmod 600 "$BACKUP_FILE"
+
+if ! openssl enc -d -aes-256-cbc -pbkdf2 -in "$BACKUP_FILE" \
+    -pass file:"$PASSPHRASE_FILE" \
+    | gzip -dc \
+    | tail -5 \
+    | grep -q "Dump completed"; then
+  echo "[$(date)] ERROR: encrypted DB backup verification failed: $BACKUP_FILE"
+  rm -f "$BACKUP_FILE"
   exit 1
 fi
 
-echo "[$(date)] Backup created: $BACKUP_FILE ($(du -h "$BACKUP_FILE" | cut -f1))"
-
-# 古いバックアップを削除
-find "$BACKUP_DIR" -name "*.sql.gz" -mtime +${KEEP_DAYS} -delete
-echo "[$(date)] Old backups (>${KEEP_DAYS} days) removed."
+echo "[$(date)] Encrypted DB backup created: $BACKUP_FILE ($(du -h "$BACKUP_FILE" | cut -f1))"
+find "$BACKUP_DIR" -name "app_db_*.sql.gz.enc" -mtime "+${KEEP_DAYS}" -delete

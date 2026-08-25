@@ -87,24 +87,6 @@ export const validateInquiry = (data: InquiryData): ValidationError => {
   return errors;
 };
 
-// ユーザー登録フォームのバリデーションスキーマ
-export const RegistrationSchema = z.object({
-  name: z
-    .string()
-    .min(1, { message: "氏名を入力してください。" })
-    .max(50, { message: "氏名は50文字以内で入力してください。" }),
-  email: z
-    .string()
-    .min(1, { message: "メールアドレスを入力してください。" })
-    .email({ message: "有効なメールアドレスを入力してください。" }),
-  password: z
-    .string()
-    .min(8, { message: "パスワードは8文字以上で入力してください。" })
-    .regex(/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
-      message: "パスワードは大文字・小文字・数字をそれぞれ含める必要があります。",
-    }),
-});
-
 // ログインフォームのバリデーションスキーマ
 export const LoginSchema = z.object({
   email: z
@@ -112,6 +94,4 @@ export const LoginSchema = z.object({
     .min(1, { message: "メールアドレスを入力してください。" })
     .email({ message: "有効なメールアドレスを入力してください。" }),
   password: z.string().min(8, { message: "パスワードは8文字以上で入力してください。" }),
-})
-
-export type RegistrationData = z.infer<typeof RegistrationSchema>;
+});

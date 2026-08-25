@@ -20,6 +20,7 @@ export async function verifyContactRecaptcha(token: string): Promise<boolean> {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
+    signal: AbortSignal.timeout(5_000),
   });
 
   if (!response.ok) return false;

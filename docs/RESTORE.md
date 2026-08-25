@@ -70,20 +70,27 @@ ls -la scripts/
 
 ```bash
 # MySQL だけ先に起動
+. ./.env
+: "${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}"
+: "${MYSQL_DATABASE:=app_db}"
 docker compose up -d mysql
-until docker compose exec -T mysql mysqladmin ping -h localhost -u root -p"${MYSQL_ROOT_PASSWORD:-root}" --silent; do sleep 2; done
+until docker compose exec -T -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql mysqladmin ping -h localhost -u root --silent; do sleep 2; done
 
 # スキーマを作る
 docker compose run --rm next node node_modules/prisma/build/index.js migrate deploy
 
-# データを流し込む（PCから転送したダンプ）
-gzip -dc app_db_YYYYMMDD_HHMMSS.sql.gz | docker compose exec -T mysql mysql -u root -proot app_db
+# データを流し込む（PCから転送した暗号化ダンプ）
+openssl enc -d -aes-256-cbc -pbkdf2 \
+  -in app_db_YYYYMMDDTHHMMSSZ.sql.gz.enc \
+  -pass file:"${DB_BACKUP_PASSPHRASE_FILE:-$HOME/.backup-passphrase}" \
+  | gzip -dc \
+  | docker compose exec -T -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql mysql -u root "$MYSQL_DATABASE"
 ```
 
 **確認:**
 
 ```bash
-docker compose exec -T mysql mysql -u root -proot app_db \
+docker compose exec -T -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql mysql -u root "$MYSQL_DATABASE" \
   -e "SELECT COUNT(*) FROM Blog; SELECT COUNT(*) FROM News;"
 ```
 
@@ -96,7 +103,7 @@ docker compose exec -T mysql mysql -u root -proot app_db \
 ```bash
 tar -xzf mizuki-haiku-full-YYYYMMDDTHHMMSSZ.tar.gz
 cat manifest.json                      # includesUploads を確認
-gzip -dc blog.sql.gz | docker compose exec -T mysql mysql -u root -proot app_db
+gzip -dc blog.sql.gz | docker compose exec -T -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql mysql -u root "$MYSQL_DATABASE"
 ```
 
 ---
@@ -168,8 +175,11 @@ systemctl is-active fail2ban
 
 ```bash
 # ローカル開発環境のDBを空にして復元テスト
-docker exec mysql_db_dev mysql -u root -proot -e "DROP DATABASE app_db; CREATE DATABASE app_db;"
-gzip -dc C:/backups/mizuki-hp/db/app_db_XXXXXXXX.sql.gz | docker exec -i mysql_db_dev mysql -u root -proot app_db
+$env:MYSQL_ROOT_PASSWORD = (Get-Credential root).GetNetworkCredential().Password
+docker exec -e "MYSQL_PWD=$env:MYSQL_ROOT_PASSWORD" mysql_db_dev mysql -u root -e "DROP DATABASE app_db; CREATE DATABASE app_db;"
+openssl enc -d -aes-256-cbc -pbkdf2 -in C:/backups/mizuki-hp/db/app_db_XXXXXXXX.sql.gz.enc -pass file:C:/secure/backup-passphrase |
+  gzip -dc |
+  docker exec -i -e "MYSQL_PWD=$env:MYSQL_ROOT_PASSWORD" mysql_db_dev mysql -u root app_db
 docker restart next_app_dev
 # http://localhost:3100/blog で俳句が表示されることを確認
 ```

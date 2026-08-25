@@ -1,6 +1,7 @@
 import { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/site";
 
-const BASE_URL = "https://mizuki-clinic.online";
+const BASE_URL = SITE_URL;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   // 静的ページのみ（/news/{id}, /blog/{id} の詳細ページは存在しないため除外）

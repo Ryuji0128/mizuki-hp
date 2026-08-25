@@ -1,5 +1,5 @@
 # ===== 依存関係インストールステージ =====
-FROM node:20-alpine AS deps
+FROM node:22.23.2-alpine3.24 AS deps
 RUN apk add --no-cache openssl libc6-compat
 WORKDIR /app
 
@@ -7,8 +7,16 @@ WORKDIR /app
 COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile --network-timeout 600000
 
+# Runtime dependencies for the final image. Prisma CLI is used by the
+# deployment job, so its complete transitive dependency tree must be present.
+FROM node:22.23.2-alpine3.24 AS production-deps
+RUN apk add --no-cache openssl libc6-compat
+WORKDIR /app
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile --production=true --network-timeout 600000
+
 # ===== ビルドステージ =====
-FROM node:20-alpine AS builder
+FROM node:22.23.2-alpine3.24 AS builder
 RUN apk add --no-cache openssl libc6-compat
 WORKDIR /app
 ENV NODE_OPTIONS="--max-old-space-size=2048"
@@ -30,7 +38,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN yarn build
 
 # ===== 本番ステージ（軽量）=====
-FROM node:20-alpine AS runner
+FROM node:22.23.2-alpine3.24 AS runner
 RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
@@ -50,9 +58,11 @@ COPY --from=builder /app/prisma ./prisma
 
 # アップロードディレクトリの作成と権限設定
 RUN mkdir -p ./public/uploads && chown -R nextjs:nodejs ./public/uploads
+COPY --from=production-deps /app/node_modules ./node_modules
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+
+# Fail the image build if Prisma CLI runtime dependencies are incomplete.
+RUN node node_modules/prisma/build/index.js --version >/dev/null
 
 USER nextjs
 
@@ -60,5 +70,8 @@ EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 CMD ["node", "server.js"]

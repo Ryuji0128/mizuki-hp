@@ -63,6 +63,10 @@ export async function sendContactEmails(payload: ContactPayload): Promise<void> 
       user: smtp.user,
       pass: smtp.pass,
     },
+    disableFileAccess: true,
+    disableUrlAccess: true,
+    connectionTimeout: 10_000,
+    socketTimeout: 30_000,
   });
 
   // HTML用サニタイズ
