@@ -102,6 +102,56 @@ else
 fi
 
 # ----------------------------------
+# バックアップの鮮度チェック
+# ----------------------------------
+# バックアップが失敗しても、これまで誰にも通知されなかった。
+# 実際に root と ubuntu の cron が衝突して DB バックアップが
+# 1件も作られない日があり、ログを見るまで気づけなかった。
+# 「最新のバックアップが古い」ことを異常として検知する。
+BACKUP_MAX_AGE_HOURS="${BACKUP_MAX_AGE_HOURS:-26}"
+
+check_backup_freshness() {
+  local label="$1" pattern="$2"
+  local newest
+  newest=$(ls -t $pattern 2>/dev/null | head -1)
+
+  if [ -z "$newest" ]; then
+    if should_alert "backup-${label}"; then
+      send_alert "${label}のバックアップが1件もありません"         "サーバー: ${HOSTNAME}
+対象: ${pattern}
+検知時刻: $(date)
+
+バックアップ処理が失敗し続けている可能性があります。
+
+確認:
+  tail -30 ~/mizuki-hp/logs/db-backup.log
+  crontab -l"
+    fi
+    return
+  fi
+
+  local age_h=$(( ( $(date +%s) - $(stat -c %Y "$newest") ) / 3600 ))
+  if [ "$age_h" -gt "$BACKUP_MAX_AGE_HOURS" ]; then
+    if should_alert "backup-${label}"; then
+      send_alert "${label}のバックアップが${age_h}時間更新されていません"         "サーバー: ${HOSTNAME}
+最新: ${newest}
+経過: ${age_h} 時間（閾値 ${BACKUP_MAX_AGE_HOURS} 時間）
+検知時刻: $(date)
+
+確認:
+  tail -30 ~/mizuki-hp/logs/db-backup.log
+  crontab -l"
+    fi
+  else
+    clear_alert "backup-${label}"
+  fi
+}
+
+check_backup_freshness "DB" "./backups/app_db_*.sql.gz"
+check_backup_freshness "俳句" "./backups/haiku/mizuki-haiku-*.tar.gz"
+check_backup_freshness "秘密情報" "./backups/secrets/secrets-*.tar.gz.enc"
+
+# ----------------------------------
 # SSL証明書の有効期限チェック
 # ----------------------------------
 # 実際に配信されている証明書を見るため、ファイルではなく443番ポートに接続して確認する。

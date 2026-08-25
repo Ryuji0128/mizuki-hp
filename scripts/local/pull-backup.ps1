@@ -66,7 +66,15 @@ function Write-Log {
 # 例外になる。ssh は "Warning: Permanently added ... known hosts" を stderr に
 # 出すため、2>&1 は使わず終了コードだけで判定する。
 # -o LogLevel=ERROR でその警告自体も抑制する。
-$SshOpts = @('-o','BatchMode=yes','-o','ConnectTimeout=30','-o','LogLevel=ERROR')
+# -n は必須。
+# ssh は既定で stdin を読むため、タスクスケジューラのようにコンソールが無い環境では
+# リモートコマンドが終わっても ssh 自身が終了せずハングする。
+# 実際にこれで後始末の rm が11分以上ブロックし、タスクが2時間の上限まで
+# 終わらない状態になった（結果 0x41306 = 強制終了）。
+$SshOpts = @('-n','-o','BatchMode=yes','-o','ConnectTimeout=30','-o','LogLevel=ERROR')
+
+# scp は -n を受け付けないため別に持つ
+$ScpOpts = @('-o','BatchMode=yes','-o','ConnectTimeout=30','-o','LogLevel=ERROR')
 
 function Invoke-Ssh {
     param([string]$Command)
@@ -118,7 +126,7 @@ foreach ($item in @(
         # 「取得済み」と誤認して壊れたファイルが残り続ける。
         $partPath = "$localPath.part"
         Remove-Item $partPath -ErrorAction SilentlyContinue
-        & scp -q @SshOpts "${SshHost}:$($remoteFile.Trim())" $partPath
+        & scp -q @ScpOpts "${SshHost}:$($remoteFile.Trim())" $partPath
         if ($LASTEXITCODE -ne 0) {
             Write-Log "$($item.Name): $name の取得に失敗" "ERROR"
             Remove-Item $partPath -ErrorAction SilentlyContinue
@@ -154,7 +162,7 @@ try {
     # 対象が0件でも tar は空アーカイブを作るので、後段はそのまま動く
     Invoke-Ssh "cd $RemoteDir && tar czf $remoteTar $sinceArg uploads 2>/dev/null || true" | Out-Null
 
-    & scp -q @SshOpts "${SshHost}:$remoteTar" $localTar
+    & scp -q @ScpOpts "${SshHost}:$remoteTar" $localTar
     if ($LASTEXITCODE -ne 0) { throw "scp failed" }
 
     $sizeMB = [math]::Round((Get-Item $localTar).Length / 1MB, 1)
