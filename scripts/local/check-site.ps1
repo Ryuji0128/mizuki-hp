@@ -113,6 +113,12 @@ function Get-SiteStatus {
     $req.Timeout = 20000
     $req.AllowAutoRedirect = $false
     $req.UserAgent = "mizuki-monitor/1.0"
+    # システムプロキシを経由しない。
+    # HttpWebRequest は既定で Windows のプロキシ設定を使うため、
+    # 業務用プロキシを有効にしている間はそちらが 403 を返し、
+    # サイトが正常でも「異常」と誤検知してしまう（実際に8回発生した）。
+    # 外形監視は直接経路を見るのが目的なので明示的に無効化する。
+    $req.Proxy = $null
     try {
         $resp = $req.GetResponse()
         $result.Status = [int]$resp.StatusCode
@@ -138,6 +144,27 @@ function Get-SiteStatus {
         }
     } catch { }
     return $result
+}
+
+# PC自身がインターネットに出られるか確認する。
+# ここが繋がらない場合、サイトの異常ではなくPC側の問題なので、
+# 「サイトがダウン」と通知するのは誤り。
+function Test-LocalConnectivity {
+    foreach ($probe in @("https://www.google.com/generate_204", "https://cloudflare.com/cdn-cgi/trace")) {
+        try {
+            $r = [Net.HttpWebRequest]::Create($probe)
+            $r.Timeout = 10000
+            $r.Proxy = $null
+            $r.UserAgent = "mizuki-monitor/1.0"
+            $resp = $r.GetResponse()
+            $resp.Close()
+            return $true
+        } catch [Net.WebException] {
+            # 応答が返っているならネットワーク自体は生きている
+            if ($_.Exception.Response) { return $true }
+        } catch { }
+    }
+    return $false
 }
 
 # ---- テスト送信 ----
@@ -193,6 +220,14 @@ if ($www.Error) {
 if ($problems.Count -eq 0) {
     Write-Log "正常 (HTTP $($main.Status) / 証明書残 $($main.CertDays) 日 / health $($health.Status) / www $($www.Status))"
     exit 0
+}
+
+# 異常を検知した場合、まずPC側のネットワークを疑う。
+# PCがオフラインなだけで「サイトダウン」と通知すると、
+# 誤報を繰り返して監視そのものが信用されなくなる。
+if (-not (Test-LocalConnectivity)) {
+    Write-Log "異常を検知したが、このPC自身がインターネットに到達できないため通知しない（PC側の問題）" "WARN"
+    exit 2
 }
 
 foreach ($p in $problems) {
