@@ -8,7 +8,7 @@
     サーバー側はPCへの経路を一切持たない。
 
     取得対象:
-      backups/*.sql.gz              DBダンプ（全件・数百KB）
+      backups/*.sql.gz.enc          暗号化DBダンプ（全件・数百KB）
       backups/haiku/*.tar.gz        俳句バックアップ（日次DBのみ＋週次uploads込み）
       backups/secrets/*.enc         暗号化した秘密情報
       uploads/                      画像本体（前回同期以降の差分のみ）
@@ -104,7 +104,7 @@ try {
 # 毎回まるごと取り直すと、週次のuploads込みアーカイブ(336MB x 4世代)を
 # 日々再転送することになる。
 foreach ($item in @(
-    @{ Remote = "$RemoteDir/backups/*.sql.gz";       Local = $dbDir;      Name = "DBダンプ" },
+    @{ Remote = "$RemoteDir/backups/*.sql.gz.enc";   Local = $dbDir;      Name = "暗号化DBダンプ" },
     @{ Remote = "$RemoteDir/backups/haiku/*.tar.gz"; Local = $haikuDir;   Name = "俳句バックアップ" },
     @{ Remote = "$RemoteDir/backups/secrets/*.enc";  Local = $secretsDir; Name = "秘密情報(暗号化)" }
 )) {

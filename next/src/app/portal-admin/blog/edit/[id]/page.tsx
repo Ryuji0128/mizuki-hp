@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { BlogItem } from "@/types/models";
 
@@ -112,9 +113,12 @@ export default function EditBlogPage() {
                         {imageUrl && (
                             <div>
                                 <div className="relative w-full h-48 rounded-md border overflow-hidden mb-3">
-                                    <img
+                                    <Image
                                         src={imageUrl}
                                         alt="現在の画像"
+                                        fill
+                                        sizes="100vw"
+                                        unoptimized
                                         className="w-full h-full object-cover"
                                         style={{ objectPosition: imagePosition }}
                                     />
@@ -135,7 +139,7 @@ export default function EditBlogPage() {
                                 </select>
                             </div>
                         )}
-                        <input type="file" accept="image/*" onChange={handleImageUpload} />
+                        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageUpload} />
                         {uploading && <p className="text-sm text-gray-500 mt-1">アップロード中...</p>}
                     </div>
 

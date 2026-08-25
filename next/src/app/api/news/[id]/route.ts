@@ -3,6 +3,7 @@ import { apiError, checkAdminAuth, parseId, sanitizeString, sanitizeContents, sa
 import logger from "@/lib/logger";
 import { NextResponse } from "next/server";
 import type { RouteParams, IdParams } from "@/types/models";
+import { newsUpdateSchema } from "@/lib/apiSchemas";
 
 export async function GET(
   request: Request,
@@ -53,6 +54,12 @@ export async function PUT(
   } catch {
     return apiError("無効なJSONです", 400);
   }
+
+  const parsedData = newsUpdateSchema.safeParse(data);
+  if (!parsedData.success) {
+    return apiError("Invalid news data.", 400);
+  }
+  data = parsedData.data;
 
   const { title, date, contents, url, color, pinned } = data as {
     title?: string;

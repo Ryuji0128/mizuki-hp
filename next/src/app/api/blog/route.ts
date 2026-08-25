@@ -3,13 +3,14 @@ import { apiError, checkAdminAuth, sanitizeString, sanitizeImageUrl, validateBlo
 import { checkRateLimit, rateLimitResponse, PUBLIC_API_LIMIT } from "@/lib/rateLimit";
 import logger from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
+import { blogCreateSchema } from "@/lib/apiSchemas";
 
 // =====================
 // 一覧取得 (GET)
 // =====================
 export async function GET(req: NextRequest) {
   // レート制限チェック
-  const rateLimit = checkRateLimit(req, PUBLIC_API_LIMIT);
+  const rateLimit = await checkRateLimit(req, PUBLIC_API_LIMIT);
   if (rateLimit.limited) {
     return rateLimitResponse(rateLimit.resetTime);
   }
@@ -40,6 +41,12 @@ export async function POST(request: Request) {
   } catch {
     return apiError("無効なJSONです", 400);
   }
+
+  const parsedBody = blogCreateSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return apiError("Invalid blog data.", 400);
+  }
+  body = parsedBody.data;
 
   const { title, content, imageUrl, imagePosition } = body as {
     title?: string;

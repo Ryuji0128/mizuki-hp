@@ -3,6 +3,7 @@ import { apiError, checkAdminAuth, sanitizeString, sanitizeContents, sanitizeUrl
 import { checkRateLimit, rateLimitResponse, PUBLIC_API_LIMIT } from "@/lib/rateLimit";
 import logger from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
+import { newsCreateSchema } from "@/lib/apiSchemas";
 
 // ページネーション設定
 const DEFAULT_PAGE_SIZE = 100;
@@ -10,15 +11,19 @@ const MAX_PAGE_SIZE = 500;
 
 export async function GET(req: NextRequest) {
   // レート制限チェック
-  const rateLimit = checkRateLimit(req, PUBLIC_API_LIMIT);
+  const rateLimit = await checkRateLimit(req, PUBLIC_API_LIMIT);
   if (rateLimit.limited) {
     return rateLimitResponse(rateLimit.resetTime);
   }
 
   // ページネーションパラメータ
   const { searchParams } = new URL(req.url);
-  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-  const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(searchParams.get("limit") || String(DEFAULT_PAGE_SIZE), 10)));
+  const rawPage = Number.parseInt(searchParams.get("page") || "1", 10);
+  const rawLimit = Number.parseInt(searchParams.get("limit") || String(DEFAULT_PAGE_SIZE), 10);
+  const page = Number.isFinite(rawPage) ? Math.max(1, rawPage) : 1;
+  const limit = Number.isFinite(rawLimit)
+    ? Math.min(MAX_PAGE_SIZE, Math.max(1, rawLimit))
+    : DEFAULT_PAGE_SIZE;
   const skip = (page - 1) * limit;
 
   try {
@@ -57,6 +62,12 @@ export async function POST(req: NextRequest) {
   } catch {
     return apiError("無効なJSONです", 400);
   }
+
+  const parsedBody = newsCreateSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return apiError("Invalid news data.", 400);
+  }
+  body = parsedBody.data;
 
   const { date, title, contents, url, color, pinned } = body as {
     date?: string;

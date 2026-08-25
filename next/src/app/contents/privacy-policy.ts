@@ -13,11 +13,6 @@ export interface ISection {
   listItems: ListItem[]; // リストアイテムの配列
 }
 
-// 全データの型
-export interface IPrivacyPolicyData {
-  data: ISection[];
-}
-
 export const data: ISection[] = [
   {
     title: "個人情報",

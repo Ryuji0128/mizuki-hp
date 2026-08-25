@@ -5,8 +5,6 @@ import React from "react";
 
 const BusinessIntroduction: React.FC = () => {
   const titlesOfPresidentMessageService = ["代表メッセージ"];
-  const titlesOfCompanyOutline = ["会社概要"];
-  const titlesOfCompanyHistory = ["沿革"];
 
   const titlesWidth = {
     xs: themeConstants.custom.subTitle.widthXs,

@@ -73,11 +73,13 @@ docker compose -f docker-compose.dev.yml -f docker-compose.local.yml up -d next
 # 本番側: 俳句とお知らせだけをエクスポート
 ssh <本番サーバー>
 cd ~/mizuki-hp
-docker compose exec -T mysql mysqldump --no-tablespaces --skip-add-drop-table   --complete-insert -u app_user -papp_pass app_db Blog News | gzip > /tmp/haiku-export.sql.gz
+. ./.env
+docker compose exec -T -e MYSQL_PWD="$MYSQL_PASSWORD" mysql mysqldump --no-tablespaces --skip-add-drop-table --complete-insert -u "$MYSQL_USER" "$MYSQL_DATABASE" Blog News | gzip > /tmp/haiku-export.sql.gz
 
 # ローカル側: 取り込み
 scp <本番サーバー>:/tmp/haiku-export.sql.gz .
-gzip -dc haiku-export.sql.gz | docker exec -i mysql_db_dev mysql -u root -proot app_db
+$env:MYSQL_ROOT_PASSWORD = (Get-Credential root).GetNetworkCredential().Password
+gzip -dc haiku-export.sql.gz | docker exec -i -e "MYSQL_PWD=$env:MYSQL_ROOT_PASSWORD" mysql_db_dev mysql -u root app_db
 
 # 画像（約336MB）
 scp -C -r <本番サーバー>:'~/mizuki-hp/uploads/*' uploads/
