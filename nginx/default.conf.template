@@ -2,6 +2,7 @@
 server {
     listen 80;
     server_name www.${SERVER_NAME};
+    server_tokens off;
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
@@ -16,6 +17,7 @@ server {
 server {
     listen 80;
     server_name ${SERVER_NAME};
+    server_tokens off;
 
     # Let's Encrypt 認証用
     location /.well-known/acme-challenge/ {
@@ -24,6 +26,6 @@ server {
 
     # HTTPSへリダイレクト（証明書がある場合のみ機能）
     location / {
-        return 301 https://$host$request_uri;
+        return 301 https://${SERVER_NAME}$request_uri;
     }
 }

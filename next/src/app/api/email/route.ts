@@ -12,6 +12,7 @@ import { ContactPayload, ContactRequestBody } from "@/lib/contact/types";
 import logger from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import xss from "xss";
+import { contactRequestSchema, inquiryDeleteSchema } from "@/lib/apiSchemas";
 
 function badRequest(error: string, details?: Record<string, string>) {
   return NextResponse.json(
@@ -34,7 +35,7 @@ function sanitizeBody(body: ContactRequestBody): ContactPayload {
 }
 
 export async function POST(req: NextRequest) {
-  if (isRateLimited(req, { windowMs: 60_000, max: 3 })) {
+  if (await isRateLimited(req, { windowMs: 60_000, max: 3 })) {
     return NextResponse.json(
       { success: false, error: "Too many requests. Please try again later." },
       { status: 429 }
@@ -42,7 +43,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = (await req.json()) as ContactRequestBody;
+    const parsedBody = contactRequestSchema.safeParse(await req.json());
+    if (!parsedBody.success) return badRequest("Validation failed.");
+    const body: ContactRequestBody = parsedBody.data;
     const token = String(body.token || "");
     const payload = sanitizeBody(body);
 
@@ -85,7 +88,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   // レート制限（管理API用: 1分間に30リクエスト）
-  if (isRateLimited(req, { windowMs: 60_000, max: 30 })) {
+  if (await isRateLimited(req, { windowMs: 60_000, max: 30 })) {
     return NextResponse.json(
       { success: false, error: "Too many requests. Please try again later." },
       { status: 429 }
@@ -108,7 +111,7 @@ export async function GET(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   // レート制限（管理API用: 1分間に30リクエスト）
-  if (isRateLimited(req, { windowMs: 60_000, max: 30 })) {
+  if (await isRateLimited(req, { windowMs: 60_000, max: 30 })) {
     return NextResponse.json(
       { success: false, error: "Too many requests. Please try again later." },
       { status: 429 }
@@ -118,7 +121,9 @@ export async function DELETE(req: NextRequest) {
   if (!(await isAdminUser())) return unauthorized();
 
   try {
-    const body = (await req.json()) as { id?: number | string };
+    const parsedBody = inquiryDeleteSchema.safeParse(await req.json());
+    if (!parsedBody.success) return badRequest("Invalid inquiry ID.");
+    const body = parsedBody.data;
     const id = Number(body.id);
     if (!Number.isFinite(id) || id <= 0) {
       return badRequest("Invalid inquiry ID.");

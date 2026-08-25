@@ -12,6 +12,12 @@ async function main() {
     throw new Error("ADMIN_EMAIL and ADMIN_PASSWORD environment variables are required");
   }
 
+  if (password.length < 12 || !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+    throw new Error(
+      "ADMIN_PASSWORD must be at least 12 characters and include upper-case, lower-case, and numeric characters"
+    );
+  }
+
   const hashedPassword = await bcryptjs.hash(password, 10);
 
   const user = await prisma.user.upsert({

@@ -8,8 +8,9 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Metadata } from "next";
 import "./globals.css";
+import { SITE_URL } from "@/lib/site";
 
-const siteUrl = "https://mizuki-clinic.online";
+const siteUrl = SITE_URL;
 
 export const metadata: Metadata = {
   title: {

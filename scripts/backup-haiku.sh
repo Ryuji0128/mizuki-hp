@@ -51,7 +51,7 @@ fi
 
 MYSQL_DATABASE="${MYSQL_DATABASE:-app_db}"
 MYSQL_USER="${MYSQL_USER:-app_user}"
-MYSQL_PASSWORD="${MYSQL_PASSWORD:-app_pass}"
+: "${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set in .env}"
 
 mkdir -p "$BACKUP_DIR"
 

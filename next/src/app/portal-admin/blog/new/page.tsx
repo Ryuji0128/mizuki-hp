@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 type ApiErrorResponse = {
@@ -127,16 +128,19 @@ export default function NewBlogPage() {
                     </label>
                     <input
                         type="file"
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/webp"
                         onChange={handleImageChange}
                         className="w-full border p-2 rounded-md"
                     />
                     {previewUrl && (
                         <div className="mt-4">
                             <div className="relative w-full h-60 rounded-lg shadow-md overflow-hidden border">
-                                <img
+                                <Image
                                     src={previewUrl}
                                     alt="プレビュー"
+                                    fill
+                                    sizes="100vw"
+                                    unoptimized
                                     className="w-full h-full object-cover"
                                     style={{ objectPosition: imagePosition }}
                                 />

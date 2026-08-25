@@ -68,6 +68,27 @@ export async function checkAdminAuth(): Promise<
   return { isAdmin: true, email: session.user.email, role: user.role };
 }
 
+/** Require the ADMIN role and re-check it against the database. */
+export async function checkAdminOnlyAuth(): Promise<
+  | { isAdmin: true; email: string; role: "ADMIN" }
+  | { isAdmin: false; response: NextResponse }
+> {
+  const session = await auth();
+  if (!session?.user?.email) {
+    return { isAdmin: false, response: apiError("Unauthorized", 401) };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { role: true },
+  });
+  if (user?.role !== "ADMIN") {
+    return { isAdmin: false, response: apiError("Forbidden", 403) };
+  }
+
+  return { isAdmin: true, email: session.user.email, role: "ADMIN" };
+}
+
 /**
  * 値を再帰的にサニタイズ
  */
